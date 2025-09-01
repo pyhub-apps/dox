@@ -1,17 +1,8 @@
 //! Core abstractions and shared types for the dox workspace.
 //!
-//! Note: In this initial scaffolding stage, existing code remains in `dox-cli`.
-//! Modules will be migrated here incrementally.
+//! This crate provides the foundational traits, types, and utilities
+//! shared across all dox providers and the CLI.
 
-// Placeholder for future spreadsheet traits and shared types.
-pub mod spreadsheet {
-    /// Placeholder Range type using A1 notation.
-    #[derive(Debug, Clone)]
-    pub struct RangeRef(pub String);
+pub mod spreadsheet;
 
-    /// Placeholder cell type.
-    #[derive(Debug, Clone)]
-    pub struct Cell {
-        pub value: String,
-    }
-}
+pub use spreadsheet::*;
