@@ -1,0 +1,40 @@
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude
+.claude/
+
+# Test files
+test-docs/
+*.test.docx
+*.test.pptx
+*.backup.*
+
+# Config
+.env
+.env.local
+
+# Coverage
+tarpaulin-report.html
+cobertura.xml
+coverage/
+
+# Profiling
+perf.data
+perf.data.old
+flamegraph.svg
+
+# OS
+Thumbs.db
+Desktop.ini
