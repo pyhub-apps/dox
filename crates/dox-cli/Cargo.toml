@@ -79,6 +79,7 @@ keyring = { version = "3.0", optional = true }
 secrecy = "0.8"
 
 # Optional providers (to be wired later)
+dox-document = { path = "../dox-document" }
 dox-excel = { path = "../dox-excel", optional = true }
 dox-gsheet = { path = "../dox-gsheet", optional = true }
 

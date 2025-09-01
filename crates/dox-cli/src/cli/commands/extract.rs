@@ -30,7 +30,7 @@ pub enum ExtractFormat {
 }
 
 pub async fn execute(args: ExtractArgs) -> Result<()> {
-    use crate::utils::ui;
+    use dox_core::utils::ui;
     
     ui::print_info(&format!(
         "Extracting text from '{}'...",

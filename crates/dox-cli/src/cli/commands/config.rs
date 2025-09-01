@@ -26,7 +26,7 @@ pub struct ConfigArgs {
 }
 
 pub async fn execute(args: ConfigArgs) -> Result<()> {
-    use crate::utils::{config::Config, ui};
+    use dox_core::utils::{config::Config, ui};
     
     if args.init {
         ui::print_info("Initializing configuration...");

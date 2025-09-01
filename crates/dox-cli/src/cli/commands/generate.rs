@@ -55,7 +55,7 @@ pub enum AIProvider {
 }
 
 pub async fn execute(args: GenerateArgs) -> Result<()> {
-    use crate::utils::ui;
+    use dox_core::utils::ui;
     
     ui::print_info(&format!("Generating {} content...", args.content_type.as_str()));
     

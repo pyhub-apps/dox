@@ -33,7 +33,7 @@ pub enum OutputFormat {
 }
 
 pub async fn execute(args: CreateArgs) -> Result<()> {
-    use crate::utils::ui;
+    use dox_core::utils::ui;
     
     ui::print_info(&format!(
         "Creating document from '{}'...",

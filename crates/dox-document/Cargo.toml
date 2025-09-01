@@ -1,0 +1,27 @@
+[package]
+name = "dox-document"
+version = "0.1.0"
+edition = "2021"
+authors = ["allieus <kika8919@gmail.com>"]
+description = "Document processing crate for Word and PowerPoint files"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pyhub-apps/dox"
+
+[dependencies]
+dox-core = { path = "../dox-core" }
+zip = "2.2"
+quick-xml = "0.37"
+regex = "1.10"
+anyhow = "1.0"
+tracing = "0.1"
+tempfile = "3.12"
+thiserror = "1.0"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+walkdir = "2.5"
+glob = "0.3"
+
+[dev-dependencies]
+tokio-test = "0.4"

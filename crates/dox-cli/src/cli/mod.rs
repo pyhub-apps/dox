@@ -42,8 +42,23 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Replace text in documents using rules from a YAML file
+    Replace(ReplaceArgs),
+    
+    /// Create documents from Markdown files
+    Create(CreateArgs),
+    
+    /// Process document templates with placeholders
+    Template(TemplateArgs),
+    
     /// Generate content using AI
     Generate(GenerateArgs),
+    
+    /// Extract text from documents
+    Extract(ExtractArgs),
+    
+    /// Manage configuration
+    Config(ConfigArgs),
 }
 
 impl Cli {
@@ -55,7 +70,12 @@ impl Cli {
         
         // Execute the command
         match self.command {
+            Commands::Replace(args) => replace::execute(args).await,
+            Commands::Create(args) => create::execute(args).await,
+            Commands::Template(args) => template::execute(args).await,
             Commands::Generate(args) => generate::execute(args).await,
+            Commands::Extract(args) => extract::execute(args).await,
+            Commands::Config(args) => config::execute(args).await,
         }
     }
 }

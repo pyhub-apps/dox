@@ -27,7 +27,7 @@ pub struct TemplateArgs {
 }
 
 pub async fn execute(args: TemplateArgs) -> Result<()> {
-    use crate::utils::ui;
+    use dox_core::utils::ui;
     
     ui::print_info(&format!(
         "Processing template '{}'...",

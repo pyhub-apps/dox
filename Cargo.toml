@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/dox-cli",
     "crates/dox-core",
+    "crates/dox-document",
     "crates/dox-excel",
     "crates/dox-gsheet",
 ]

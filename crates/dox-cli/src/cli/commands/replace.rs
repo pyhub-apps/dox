@@ -43,11 +43,11 @@ pub struct ReplaceArgs {
 }
 
 pub async fn execute(args: ReplaceArgs) -> Result<()> {
-    use crate::core::replace::Replacer;
-    use crate::utils::ui;
+    use dox_document::replace::Replacer;
+    use dox_core::utils::ui;
     
     // Load replacement rules
-    let rules = crate::core::replace::load_rules(&args.rules)?;
+    let rules = dox_document::replace::load_rules(&args.rules)?;
     
     if rules.is_empty() {
         ui::print_warning("No replacement rules found in the file");
@@ -70,7 +70,7 @@ pub async fn execute(args: ReplaceArgs) -> Result<()> {
     let replacer = Replacer::new(rules);
     
     // Process documents
-    let options = crate::core::replace::ReplaceOptions {
+    let options = dox_document::replace::ReplaceOptions {
         dry_run: args.dry_run,
         backup: args.backup,
         recursive: args.recursive,

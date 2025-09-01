@@ -1,5 +1,5 @@
 use super::{Rule, ReplaceOptions, ReplaceResults};
-use crate::core::document::Document;
+use crate::compat::Document;
 use anyhow::Result;
 use std::path::Path;
 use tracing::{debug, error, info, warn};

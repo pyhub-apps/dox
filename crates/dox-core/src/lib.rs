@@ -5,6 +5,12 @@
 
 pub mod spreadsheet;
 pub mod generate;
+pub mod error;
+pub mod logging;
+pub mod utils;
 
 pub use spreadsheet::*;
 pub use generate::*;
+pub use error::*;
+pub use logging::*;
+pub use utils::*;
