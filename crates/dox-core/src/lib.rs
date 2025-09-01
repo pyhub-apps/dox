@@ -4,5 +4,7 @@
 //! shared across all dox providers and the CLI.
 
 pub mod spreadsheet;
+pub mod generate;
 
 pub use spreadsheet::*;
+pub use generate::*;

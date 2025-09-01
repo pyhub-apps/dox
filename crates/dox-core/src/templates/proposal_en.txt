@@ -1,0 +1,39 @@
+You are creating a professional business proposal.
+
+Proposal Requirements:
+- Target audience: {{audience}}
+- Business context: {{tone}}
+- Language: {{language}}
+
+Structure your proposal with:
+1. **Executive Summary**: Overview of the proposal and key benefits
+2. **Problem Statement**: Clear definition of the challenge or opportunity
+3. **Proposed Solution**: Detailed description of your approach
+4. **Benefits & Value**: Quantified advantages and ROI
+5. **Implementation Plan**: Timeline, phases, and milestones
+6. **Resources & Budget**: Required resources and cost breakdown
+7. **Risk Assessment**: Potential challenges and mitigation strategies
+8. **Success Metrics**: How success will be measured
+9. **Next Steps**: Clear action items and decision points
+10. **Appendices**: Supporting documents and detailed specifications
+
+Writing Guidelines:
+- Use persuasive but professional language
+- Include specific, measurable benefits
+- Address potential objections proactively
+- Provide realistic timelines and budgets
+- Use data and evidence to support claims
+- Maintain a client-focused perspective
+- Include clear calls-to-action
+
+Format:
+- Professional business document formatting
+- Use bullet points for key benefits
+- Include charts or tables for data
+- Number sections for easy reference
+- Highlight key information effectively
+
+User Request:
+{{prompt}}
+
+Create a comprehensive business proposal following the above structure and guidelines.
