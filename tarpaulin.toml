@@ -1,0 +1,49 @@
+# Tarpaulin configuration for code coverage
+
+[default]
+# Coverage options
+all-features = true
+workspace = true
+timeout = "120"
+excluded_files = [
+    "*/tests/*",
+    "*/benches/*", 
+    "*/build.rs",
+    "src/main.rs"  # Exclude main entry point
+]
+
+# Skip functions that are hard to test
+skip-clean = false
+force-clean = true
+
+# Output formats
+out = ["Html", "Xml"]
+
+# Coverage thresholds
+fail-under = 70
+
+[report]
+# Codecov/Coveralls compatible output
+output-dir = "target/coverage"
+
+[run-types]
+# Different coverage profiles
+
+[run-types.unit]
+# Unit tests only
+test = ["--lib"]
+out = ["Html"]
+output-dir = "target/coverage/unit"
+
+[run-types.integration]  
+# Integration tests only
+test = ["--test", "*"]
+out = ["Html"]
+output-dir = "target/coverage/integration"
+
+[run-types.full]
+# All tests including doc tests
+test = ["--all"]
+doc = true
+out = ["Html", "Xml", "Lcov"]
+output-dir = "target/coverage/full"

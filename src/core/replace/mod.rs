@@ -6,6 +6,9 @@ use walkdir::WalkDir;
 mod replacer;
 pub use replacer::Replacer;
 
+#[cfg(test)]
+mod tests;
+
 /// A single replacement rule
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rule {
