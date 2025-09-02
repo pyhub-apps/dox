@@ -16,8 +16,15 @@ pub enum DocumentError {
     #[error("XML parsing error: {0}")]
     Xml(#[from] quick_xml::Error),
     
-    #[error("Unsupported document format: {extension}")]
-    UnsupportedFormat { extension: String },
+    #[error("Unsupported document format: {format}")]
+    UnsupportedFormat { format: String },
+    
+    #[error("File read error for {path}: {source}")]
+    FileReadError { 
+        path: String,
+        #[source]
+        source: anyhow::Error,
+    },
     
     #[error("Document not found: {path}")]
     DocumentNotFound { path: String },
@@ -71,6 +78,7 @@ pub trait DocumentProvider: std::fmt::Debug {
 pub enum DocumentType {
     Word,
     PowerPoint,
+    Pdf,
 }
 
 impl DocumentType {
@@ -79,6 +87,7 @@ impl DocumentType {
         match self {
             DocumentType::Word => &["docx"],
             DocumentType::PowerPoint => &["pptx"],
+            DocumentType::Pdf => &["pdf"],
         }
     }
     
@@ -92,6 +101,7 @@ impl DocumentType {
         match ext.to_lowercase().as_str() {
             "docx" => Some(DocumentType::Word),
             "pptx" => Some(DocumentType::PowerPoint),
+            "pdf" => Some(DocumentType::Pdf),
             _ => None,
         }
     }
@@ -102,14 +112,15 @@ pub fn create_provider(path: &Path) -> Result<Box<dyn DocumentProvider>, Documen
     let ext = path.extension()
         .and_then(|s| s.to_str())
         .ok_or_else(|| DocumentError::UnsupportedFormat { 
-            extension: "none".to_string() 
+            format: "none".to_string() 
         })?;
     
     match DocumentType::from_extension(ext) {
         Some(DocumentType::Word) => Ok(Box::new(crate::WordProvider::open(path)?)),
         Some(DocumentType::PowerPoint) => Ok(Box::new(crate::PowerPointProvider::open(path)?)),
+        Some(DocumentType::Pdf) => Ok(Box::new(crate::pdf::PdfProvider::open(path)?)),
         None => Err(DocumentError::UnsupportedFormat { 
-            extension: ext.to_string() 
+            format: ext.to_string() 
         }),
     }
 }

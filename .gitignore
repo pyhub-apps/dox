@@ -46,3 +46,7 @@ flamegraph.svg
 # OS
 Thumbs.db
 Desktop.ini
+
+# sample document files
+/samples
+

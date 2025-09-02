@@ -54,16 +54,95 @@ pub enum ExtractFormat {
     Markdown,
 }
 
+
 pub async fn execute(args: ExtractArgs) -> Result<()> {
     use dox_core::utils::ui;
+    use dox_document::extract::extractors::UniversalExtractor;
+    use dox_document::OutputFormatter;
+    use std::fs;
+    
+    // Verify input file exists
+    if !args.input.exists() {
+        ui::print_error(&format!("입력 파일을 찾을 수 없습니다: {}", args.input.display()));
+        return Err(anyhow::anyhow!("File not found: {}", args.input.display()));
+    }
     
     ui::print_info(&format!(
         "'{}' 파일에서 텍스트를 추출하는 중...",
         args.input.display()
     ));
     
-    // TODO: Implement text extraction logic
-    ui::print_warning("추출 명령어는 아직 Rust 버전에서 구현되지 않았습니다");
+    // Extract content from document
+    let extract_result = match UniversalExtractor::extract_from_path(&args.input) {
+        Ok(result) => result,
+        Err(e) => {
+            ui::print_error(&format!("텍스트 추출 실패: {}", e));
+            return Err(anyhow::anyhow!("Extraction failed: {}", e));
+        }
+    };
+    
+    // Check if extraction was successful
+    if !extract_result.success {
+        if let Some(ref error) = extract_result.error {
+            ui::print_error(&format!("추출 오류: {}", error));
+            return Err(anyhow::anyhow!("Extraction error: {}", error));
+        }
+    }
+    
+    // Convert ExtractFormat enum from clap to our internal enum
+    let output_format = match args.format {
+        ExtractFormat::Text => dox_document::ExtractFormat::Text,
+        ExtractFormat::Json => dox_document::ExtractFormat::Json,
+        ExtractFormat::Markdown => dox_document::ExtractFormat::Markdown,
+    };
+    
+    // Format the output
+    let formatted_output = OutputFormatter::format(&extract_result, output_format)
+        .map_err(|e| anyhow::anyhow!("Output formatting failed: {}", e))?;
+    
+    // Output the result
+    if let Some(ref output_path) = args.output {
+        // Write to file
+        if let Some(parent_dir) = output_path.parent() {
+            fs::create_dir_all(parent_dir)
+                .map_err(|e| anyhow::anyhow!("Failed to create output directory: {}", e))?;
+        }
+        
+        fs::write(output_path, &formatted_output)
+            .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
+        
+        ui::print_success(&format!("추출된 내용이 저장되었습니다: {}", output_path.display()));
+        
+        // Print summary
+        ui::print_info(&format!(
+            "문서 형식: {} | 페이지 수: {} | 추출된 텍스트 길이: {} 문자",
+            extract_result.format,
+            extract_result.metadata.total_pages.max(extract_result.pages.len()),
+            formatted_output.len()
+        ));
+        
+        // Show metadata if requested and available
+        if args.with_metadata {
+            let metadata = &extract_result.metadata;
+            ui::print_info("=== 문서 메타데이터 ===");
+            if let Some(ref title) = metadata.title {
+                ui::print_info(&format!("제목: {}", title));
+            }
+            if let Some(ref author) = metadata.author {
+                ui::print_info(&format!("작성자: {}", author));
+            }
+            if let Some(ref creator) = metadata.creator {
+                ui::print_info(&format!("생성 프로그램: {}", creator));
+            }
+            if let Some(ref subject) = metadata.subject {
+                ui::print_info(&format!("주제: {}", subject));
+            }
+        }
+        
+    } else {
+        // Write to stdout
+        println!("{}", formatted_output);
+    }
     
     Ok(())
 }

@@ -3,7 +3,7 @@ name = "dox-document"
 version = "0.1.0"
 edition = "2021"
 authors = ["allieus <kika8919@gmail.com>"]
-description = "Document processing crate for Word and PowerPoint files"
+description = "Document processing crate for Word, PowerPoint, and PDF files"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/pyhub-apps/dox"
 
@@ -22,6 +22,8 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 walkdir = "2.5"
 glob = "0.3"
+pdf-extract = "0.9"
+lopdf = "0.35"
 
 [dev-dependencies]
 tokio-test = "0.4"
