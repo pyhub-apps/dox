@@ -125,6 +125,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Add ARM64 target for Windows
+        if: matrix.target == 'aarch64-pc-windows-msvc'
+        run: rustup target add aarch64-pc-windows-msvc
+
       - name: Install cross (for cross-compilation)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: cargo install cross --git https://github.com/cross-rs/cross
@@ -153,11 +157,20 @@ jobs:
       - name: Build binary
         run: |
           FEATURES="${{ matrix.features || '--features keyring,pdf' }}"
-          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-            cross build --bin dox --target ${{ matrix.target }} --release ${FEATURES}
-          else
-            cargo build --bin dox --target ${{ matrix.target }} --release ${FEATURES}
-          fi
+          case "${{ matrix.target }}" in
+            "aarch64-unknown-linux-gnu")
+              echo "Building Linux ARM64 with cross-rs..."
+              cross build --bin dox --target ${{ matrix.target }} --release ${FEATURES}
+              ;;
+            "aarch64-pc-windows-msvc")
+              echo "Building Windows ARM64 with native cargo..."
+              cargo build --bin dox --target ${{ matrix.target }} --release ${FEATURES}
+              ;;
+            *)
+              echo "Building ${{ matrix.target }} with native cargo..."
+              cargo build --bin dox --target ${{ matrix.target }} --release ${FEATURES}
+              ;;
+          esac
 
       - name: Prepare binary
         shell: bash
