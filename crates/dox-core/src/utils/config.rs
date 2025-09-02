@@ -40,7 +40,7 @@ impl Default for GlobalConfig {
         GlobalConfig {
             verbose: false,
             quiet: false,
-            lang: "en".to_string(),
+            lang: "ko".to_string(),  // 기본 언어를 한글로 설정
             no_color: false,
         }
     }

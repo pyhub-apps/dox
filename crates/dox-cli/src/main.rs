@@ -17,23 +17,23 @@ async fn main() -> Result<()> {
     let is_verbose = is_verbose(&cli);
     dox_core::init_logging(log_config)?;
     
-    info!("Starting dox v{}", env!("CARGO_PKG_VERSION"));
-    debug!("Command: {:?}", std::env::args().collect::<Vec<_>>());
+    info!("dox v{} 시작", env!("CARGO_PKG_VERSION"));
+    debug!("명령어: {:?}", std::env::args().collect::<Vec<_>>());
     
     // Execute command and handle errors properly
     match cli.execute().await {
         Ok(()) => {
-            info!("Command completed successfully");
+            info!("명령어가 성공적으로 완료되었습니다");
             Ok(())
         }
         Err(err) => {
             // Try to downcast to DoxError for better error reporting
             if let Some(dox_err) = err.downcast_ref::<DoxError>() {
-                error!("Command failed: {}", dox_err);
+                error!("명령어 실행 실패: {}", dox_err);
                 ErrorReporter::report(dox_err, is_verbose);
             } else {
-                error!("Command failed: {}", err);
-                ErrorReporter::report_generic(&*err, "Command execution failed");
+                error!("명령어 실행 실패: {}", err);
+                ErrorReporter::report_generic(&*err, "명령어 실행 실패");
             }
             std::process::exit(1);
         }

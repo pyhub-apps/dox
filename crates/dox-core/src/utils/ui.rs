@@ -2,33 +2,33 @@ use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
 
-/// Print a header message
+/// 헤더 메시지 출력
 pub fn print_header(message: &str) {
     println!("\n{}", message.bold().blue());
-    println!("{}", "=".repeat(message.len()).blue());
+    println!("{}", "=".repeat(message.chars().count()).blue());
 }
 
-/// Print an info message
+/// 정보 메시지 출력
 pub fn print_info(message: &str) {
     println!("{} {}", "ℹ".blue(), message);
 }
 
-/// Print a success message
+/// 성공 메시지 출력
 pub fn print_success(message: &str) {
     println!("{} {}", "✓".green(), message.green());
 }
 
-/// Print a warning message
+/// 경고 메시지 출력
 pub fn print_warning(message: &str) {
     eprintln!("{} {}", "⚠".yellow(), message.yellow());
 }
 
-/// Print an error message
+/// 오류 메시지 출력
 pub fn print_error(message: &str) {
     eprintln!("{} {}", "✗".red(), message.red());
 }
 
-/// Print a step in a process
+/// 프로세스 단계 출력
 pub fn print_step(current: usize, total: usize, message: &str) {
     println!(
         "{} [{}/{}] {}",
@@ -83,22 +83,34 @@ pub fn print_diff(old: &str, new: &str, _context_lines: usize) {
     }
 }
 
-/// Prompt for user confirmation
+/// 사용자 확인 프롬프트
 pub fn confirm(message: &str, default: bool) -> bool {
     use dialoguer::Confirm;
     
+    let prompt = if message.contains("?") {
+        message.to_string()
+    } else {
+        format!("{}?", message)
+    };
+    
     Confirm::new()
-        .with_prompt(message)
+        .with_prompt(&prompt)
         .default(default)
         .interact()
         .unwrap_or(default)
 }
 
-/// Prompt for user input
+/// 사용자 입력 프롬프트
 pub fn prompt(message: &str, default: Option<&str>) -> String {
     use dialoguer::Input;
     
-    let mut input = Input::<String>::new().with_prompt(message);
+    let prompt = if message.ends_with(':') || message.ends_with('>') {
+        message.to_string()
+    } else {
+        format!("{}: ", message)
+    };
+    
+    let mut input = Input::<String>::new().with_prompt(&prompt);
     
     if let Some(default_value) = default {
         input = input.default(default_value.to_string());
@@ -107,12 +119,18 @@ pub fn prompt(message: &str, default: Option<&str>) -> String {
     input.interact_text().unwrap_or_default()
 }
 
-/// Select from a list of options
+/// 옵션 목록에서 선택
 pub fn select<T: ToString>(message: &str, items: &[T], default: usize) -> usize {
     use dialoguer::Select;
     
+    let prompt = if message.ends_with(':') || message.ends_with('>') {
+        message.to_string()
+    } else {
+        format!("{}: ", message)
+    };
+    
     Select::new()
-        .with_prompt(message)
+        .with_prompt(&prompt)
         .items(items)
         .default(default)
         .interact()

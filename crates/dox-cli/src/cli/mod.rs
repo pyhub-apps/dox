@@ -5,35 +5,35 @@ use std::path::PathBuf;
 pub mod commands;
 use commands::*;
 
-/// Document automation and AI-powered content generation CLI
+/// 문서 자동화 및 AI 기반 콘텐츠 생성 CLI
 #[derive(Parser, Debug)]
 #[command(
     name = "dox",
     version,
     author,
-    about,
+    about = "문서 자동화 및 AI 기반 콘텐츠 생성 CLI",
     long_about = None,
     arg_required_else_help = true
 )]
 pub struct Cli {
-    /// Path to configuration file
-    #[arg(short, long, value_name = "FILE", global = true)]
+    /// 설정 파일 경로
+    #[arg(short, long, value_name = "파일", global = true)]
     pub config: Option<PathBuf>,
     
-    /// Enable verbose output
+    /// 상세 출력 활성화
     #[arg(short, long, global = true)]
     pub verbose: bool,
     
-    /// Suppress non-error output
+    /// 오류 외 출력 억제
     #[arg(short, long, global = true)]
     pub quiet: bool,
     
-    /// Disable colored output
+    /// 색상 출력 비활성화
     #[arg(long, global = true)]
     pub no_color: bool,
     
-    /// Set interface language (en, ko)
-    #[arg(long, global = true, value_name = "LANG")]
+    /// 인터페이스 언어 설정 (en, ko)
+    #[arg(long, global = true, value_name = "언어")]
     pub lang: Option<String>,
     
     #[command(subcommand)]
@@ -42,22 +42,22 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Replace text in documents using rules from a YAML file
+    /// YAML 규칙 파일을 사용하여 문서의 텍스트 치환
     Replace(ReplaceArgs),
     
-    /// Create documents from Markdown files
+    /// Markdown 파일에서 문서 생성
     Create(CreateArgs),
     
-    /// Process document templates with placeholders
+    /// 플레이스홀더가 포함된 문서 템플릿 처리
     Template(TemplateArgs),
     
-    /// Generate content using AI
+    /// AI를 사용하여 콘텐츠 생성
     Generate(GenerateArgs),
     
-    /// Extract text from documents
+    /// 문서에서 텍스트 추출
     Extract(ExtractArgs),
     
-    /// Manage configuration
+    /// 설정 관리
     Config(ConfigArgs),
 }
 
