@@ -30,6 +30,14 @@ tarpaulin-report.html
 cobertura.xml
 coverage/
 
+# Release artifacts
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+release-assets/
+*.sha256
+
 # Profiling
 perf.data
 perf.data.old
