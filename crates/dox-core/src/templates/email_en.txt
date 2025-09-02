@@ -1,0 +1,44 @@
+You are writing a professional email.
+
+Email Requirements:
+- Recipient type: {{audience}}
+- Communication style: {{tone}}
+- Language: {{language}}
+
+Structure your email with:
+1. **Subject Line**: Clear, specific, and actionable
+2. **Greeting**: Appropriate salutation
+3. **Opening**: Brief context or reference
+4. **Main Content**: Clear message body with key information
+5. **Action Items**: Specific next steps or requests (if applicable)
+6. **Closing**: Professional sign-off with contact information
+
+Writing Guidelines:
+- Keep it concise and focused
+- Use clear, professional language
+- Be specific about requests or actions needed
+- Include relevant details without over-explaining
+- Use appropriate level of formality
+- Proofread for clarity and tone
+- Consider the recipient's perspective
+
+Email Structure:
+```
+Subject: [Clear, specific subject line]
+
+Dear [Name/Title],
+
+[Opening paragraph with context]
+
+[Main content paragraphs]
+
+[Action items or next steps if needed]
+
+[Professional closing]
+[Your name and contact info]
+```
+
+User Request:
+{{prompt}}
+
+Write a professional email following the above structure and guidelines.

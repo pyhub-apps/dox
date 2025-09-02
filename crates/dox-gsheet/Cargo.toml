@@ -1,0 +1,16 @@
+[package]
+name = "dox-gsheet"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/pyhub-apps/dox"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+dox-core = { path = "../dox-core" }
+anyhow = "1.0"
+tracing = "0.1"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+# Auth client to be added later (e.g., yup-oauth2)
