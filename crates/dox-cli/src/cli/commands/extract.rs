@@ -2,13 +2,16 @@ use anyhow::Result;
 use clap::Args;
 use std::path::PathBuf;
 
+#[cfg(feature = "pdf")]
+extern crate pdf_extract;
+
 /// 문서에서 텍스트 추출
 ///
 /// 지원 파일 형식:
 ///   • .docx (Microsoft Word)
 ///   • .pptx (Microsoft PowerPoint)
-///   • .pdf (PDF 문서)
 ///   • .xlsx (Microsoft Excel)
+#[cfg_attr(feature = "pdf", doc = "///   • .pdf (PDF 문서)")]
 ///
 /// 예시:
 ///   # Word 문서에서 텍스트 추출
@@ -16,14 +19,15 @@ use std::path::PathBuf;
 ///   
 ///   # JSON 형식으로 메타데이터와 함께 추출
 ///   dox extract -i presentation.pptx --format json --with-metadata
-///   
-///   # 추출 결과를 파일로 저장
-///   dox extract -i document.pdf -o output.txt
+#[cfg_attr(feature = "pdf", doc = "///   ")]
+#[cfg_attr(feature = "pdf", doc = "///   # PDF 문서에서 텍스트 추출")]
+#[cfg_attr(feature = "pdf", doc = "///   dox extract -i document.pdf -o output.txt")]
 #[derive(Args, Debug)]
 pub struct ExtractArgs {
     /// 입력 문서 경로
     /// 
-    /// 지원 형식: .docx (Word), .pptx (PowerPoint), .pdf, .xlsx (Excel)
+    #[cfg_attr(feature = "pdf", doc = "/// 지원 형식: .docx (Word), .pptx (PowerPoint), .pdf, .xlsx (Excel)")]
+    #[cfg_attr(not(feature = "pdf"), doc = "/// 지원 형식: .docx (Word), .pptx (PowerPoint), .xlsx (Excel)")]
     #[arg(short, long, value_name = "파일")]
     pub input: PathBuf,
     

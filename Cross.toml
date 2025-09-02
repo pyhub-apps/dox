@@ -1,0 +1,47 @@
+# Cross-compilation configuration for dox project
+#
+# This configuration helps with cross-compiling to different architectures,
+# particularly for ARM64 targets that may have native dependency issues.
+
+[build]
+# Use a more recent cross toolchain image
+image = "ghcr.io/cross-rs/cross:main"
+
+[target.aarch64-unknown-linux-gnu]
+# Pre-build commands to install necessary dependencies
+pre-build = [
+    "dpkg --add-architecture arm64",
+    "apt-get update",
+    # Install build essentials for ARM64
+    "apt-get install --assume-yes build-essential:arm64",
+    # Install pkg-config for dependency discovery
+    "apt-get install --assume-yes pkg-config:arm64",
+    # For PDF processing dependencies (if enabled)
+    "apt-get install --assume-yes libssl-dev:arm64 || true",
+    "apt-get install --assume-yes zlib1g-dev:arm64 || true"
+]
+
+# Set environment variables for cross-compilation
+[target.aarch64-unknown-linux-gnu.env]
+passthrough = [
+    "CARGO_FEATURE_PDF",
+    "CARGO_CFG_TARGET_ARCH",
+    "CARGO_CFG_TARGET_OS"
+]
+
+# Additional compiler flags if needed
+CC_aarch64_unknown_linux_gnu = "aarch64-linux-gnu-gcc"
+CXX_aarch64_unknown_linux_gnu = "aarch64-linux-gnu-g++"
+AR_aarch64_unknown_linux_gnu = "aarch64-linux-gnu-ar"
+CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER = "aarch64-linux-gnu-gcc"
+
+[target.x86_64-unknown-linux-gnu]
+# No special configuration needed for x86_64 Linux
+
+[target.x86_64-pc-windows-msvc]
+# Windows x86_64 configuration - mainly for documentation
+# PDF features will be disabled on Windows by default
+
+[target.aarch64-pc-windows-msvc] 
+# Windows ARM64 configuration - mainly for documentation
+# PDF features will be disabled on Windows by default

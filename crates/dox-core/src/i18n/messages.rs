@@ -136,7 +136,10 @@ static MESSAGES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
     
     // === Extract 명령어 상세 도움말 ===
     m.insert("help.extract.formats", "• text: 일반 텍스트 (서식 없음)\n• json: 구조화된 JSON (메타데이터 포함 가능)\n• markdown: 마크다운 형식 (제목, 목록 등 보존)");
+    #[cfg(feature = "pdf")]
     m.insert("help.extract.supported_files", "지원 파일: .docx (Word), .pptx (PowerPoint), .pdf, .xlsx (Excel)");
+    #[cfg(not(feature = "pdf"))]
+    m.insert("help.extract.supported_files", "지원 파일: .docx (Word), .pptx (PowerPoint), .xlsx (Excel)");
     m.insert("help.extract.example1", "# Word 문서에서 텍스트 추출\ndox extract -i report.docx");
     m.insert("help.extract.example2", "# JSON 형식으로 메타데이터와 함께 추출\ndox extract -i presentation.pptx --format json --with-metadata");
     
