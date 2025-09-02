@@ -2,9 +2,9 @@
 name = "dox-cli"
 version = "1.2536.9"
 edition = "2021"
-authors = ["PyHub Korea <support@pyhub.kr>"]
+authors = ["PyHub Korea <me@pyhub.kr>"]
 description = "Document automation and AI-powered content generation CLI"
-license = "MIT"
+license = "Proprietary"
 repository = "https://github.com/pyhub-apps/dox"
 keywords = ["document", "automation", "cli", "office", "markdown"]
 categories = ["command-line-utilities", "text-processing"]

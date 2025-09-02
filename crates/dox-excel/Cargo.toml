@@ -2,7 +2,7 @@
 name = "dox-excel"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license = "Proprietary"
 repository = "https://github.com/pyhub-apps/dox"
 
 [lib]

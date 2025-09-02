@@ -1,7 +1,7 @@
 # dox - 문서 자동화 CLI 🚀 (Rust 에디션)
 
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange?style=flat&logo=rust)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![CI](https://github.com/pyhub-apps/dox/workflows/CI/badge.svg)](https://github.com/pyhub-apps/dox/actions)
 
 문서 자동화, 텍스트 치환, AI 기반 콘텐츠 생성을 위한 강력한 CLI 도구입니다. Word/PowerPoint 문서를 아름다운 진행 표시와 컬러 출력으로 효율적으로 처리합니다.
@@ -205,7 +205,10 @@ cargo clippy
 
 ## 📝 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다 - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+이 소프트웨어는 독점 상업용 라이선스로 보호됩니다. 모든 권리는 PyHub Korea에 있습니다.
+
+상업적 사용을 위해서는 별도의 라이선스 계약이 필요합니다.
+자세한 내용은 [LICENSE](LICENSE) 파일을 참조하거나 me@pyhub.kr로 문의하시기 바랍니다.
 
 ## 🙏 감사의 말
 
@@ -216,4 +219,4 @@ cargo clippy
 ## 📞 문의
 
 - **이슈**: [GitHub Issues](https://github.com/pyhub-apps/dox/issues)
-- **이메일**: support@pyhub.kr
+- **이메일**: me@pyhub.kr
