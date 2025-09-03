@@ -4,7 +4,9 @@
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![CI](https://github.com/pyhub-apps/dox/workflows/CI/badge.svg)](https://github.com/pyhub-apps/dox/actions)
 
-문서 자동화, 텍스트 치환, AI 기반 콘텐츠 생성을 위한 강력한 CLI 도구입니다. Word/PowerPoint 문서를 아름다운 진행 표시와 컬러 출력으로 효율적으로 처리합니다.
+문서 자동화, 텍스트 치환, AI 기반 콘텐츠 생성을 위한 강력한 CLI 도구입니다. Word/PowerPoint/Excel/PDF 문서를 아름다운 진행 표시와 컬러 출력으로 효율적으로 처리합니다.
+
+> 🎉 **최신 업데이트**: Extract 명령어에 Excel 지원, 병렬 처리, 배치 기능이 추가되었습니다!
 
 > **참고**: 이 프로젝트는 원본 [dox-golang](https://github.com/pyhub-kr/pyhub-documents-cli) 프로젝트의 Rust 포팅 버전으로, 향상된 성능과 더 작은 바이너리 크기를 제공합니다.
 
@@ -33,10 +35,13 @@
 - YAML/JSON 기반 값 주입
 - 복잡한 데이터 구조 지원
 
-### 📊 텍스트 추출
-- Word, PowerPoint, PDF, Excel 문서에서 텍스트 추출
-- 다양한 출력 형식 지원 (텍스트, JSON, Markdown)
-- 메타데이터 포함 옵션
+### 📊 텍스트 추출 🆕
+- **다중 형식 지원**: Word, PowerPoint, PDF, Excel 문서에서 텍스트 추출
+- **배치 처리**: 디렉토리 전체 문서를 한 번에 처리
+- **병렬 처리**: 다중 파일을 동시에 처리하여 속도 향상
+- **다양한 출력 형식**: 텍스트, JSON, Markdown 지원
+- **메타데이터 추출**: 문서 정보 포함 옵션
+- **고급 필터링**: glob 패턴으로 파일 제외 기능
 
 ## 🌏 한글 지원
 
@@ -149,17 +154,109 @@ dox generate -p "Rust 프로그래밍 입문" -t blog -o blog.md
 dox generate -p "2025년 시장 분석" -t report --model gpt-4
 ```
 
-### 텍스트 추출
+### 📊 텍스트 추출 (신규 업데이트!) 
+
+#### 지원 파일 형식
+- **Word** (.docx), **PowerPoint** (.pptx), **PDF** (.pdf)
+- **Excel** (.xlsx) ← 새로 추가! 🆕
+
+#### 기본 사용법
 
 ```bash
-# Word 문서에서 텍스트 추출
+# 단일 파일에서 텍스트 추출
 dox extract -i report.docx
+dox extract -i spreadsheet.xlsx  # Excel 지원!
+dox extract -i presentation.pptx
+dox extract -i document.pdf
 
-# JSON 형식으로 메타데이터와 함께 추출
-dox extract -i presentation.pptx --format json --with-metadata
+# 출력 형식 선택
+dox extract -i report.docx --format text      # 일반 텍스트 (기본값)
+dox extract -i report.docx --format json      # JSON 형식 
+dox extract -i report.docx --format markdown  # 마크다운 형식
 
-# 추출 결과를 파일로 저장
-dox extract -i document.pdf -o output.txt
+# 메타데이터 포함
+dox extract -i document.pdf --format json --with-metadata
+
+# 파일로 저장
+dox extract -i presentation.pptx -o output.txt
+dox extract -i spreadsheet.xlsx -o data.json --format json
+```
+
+#### 디렉토리 배치 처리 🚀
+
+```bash
+# 디렉토리 전체 문서 처리
+dox extract -i ./documents
+
+# 하위 폴더까지 재귀 처리 (기본값)
+dox extract -i ./project --recursive
+
+# 특정 파일 제외
+dox extract -i ./documents --exclude "*.tmp"
+dox extract -i ./project --exclude "backup/*" --exclude "~$*"
+
+# 출력 디렉토리 지정
+dox extract -i ./documents --output-dir ./extracted
+
+# 개별 파일명으로 저장
+dox extract -i ./documents --format json --output-dir ./results
+# 결과: report.json, presentation.json, spreadsheet.json 등
+```
+
+#### 고성능 병렬 처리 ⚡
+
+```bash
+# 병렬 처리 활성화 (빠른 속도)
+dox extract -i ./large-project --concurrent
+
+# 워커 수 조정 (기본값: 4)
+dox extract -i ./documents --concurrent --max-workers 8
+
+# 진행률 표시와 함께
+dox extract -i ./big-directory --concurrent -v
+```
+
+#### 실제 사용 시나리오
+
+```bash
+# 회계 자료에서 데이터 추출
+dox extract -i ./accounting/*.xlsx --format json --output-dir ./data
+
+# 보고서 모음에서 텍스트만 추출
+dox extract -i ./reports --exclude "temp/*" --format text
+
+# 프레젠테이션 내용을 마크다운으로 변환
+dox extract -i ./slides --format markdown --output-dir ./md-files
+
+# 대용량 문서 폴더를 병렬로 빠르게 처리
+dox extract -i ./all-documents --concurrent --max-workers 8 \
+  --exclude "*.tmp" --exclude "~$*" --format json --output-dir ./extracted
+```
+
+#### Excel 파일 특별 기능 📈
+
+Excel 파일 처리 시 특별한 기능들:
+
+```bash
+# Excel 파일에서 모든 시트 내용 추출
+dox extract -i budget.xlsx
+
+# JSON으로 시트별 구조화된 데이터 얻기
+dox extract -i financial-report.xlsx --format json --with-metadata
+
+# 여러 Excel 파일을 일괄 처리
+dox extract -i ./spreadsheets --concurrent --output-dir ./csv-data
+```
+
+출력 형태:
+```
+=== Sheet1 ===
+항목    1월    2월    3월
+매출    1000   1200   1100
+비용    800    900    850
+
+=== Summary ===
+총계    200    300    250
 ```
 
 ### 템플릿 처리
@@ -235,6 +332,13 @@ recursive = true
 concurrent = true
 max_workers = 4
 
+[extract]
+format = "text"
+with_metadata = false
+recursive = true
+concurrent = false
+max_workers = 4
+
 [generate]
 model = "gpt-3.5-turbo"
 max_tokens = 2000
@@ -276,7 +380,7 @@ dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
 - [ ] Create 명령어
 - [ ] Template 명령어
 - [ ] Generate 명령어 (AI 통합)
-- [ ] Extract 명령어
+- [x] Extract 명령어 ✨ (Excel 지원, 병렬 처리, 배치 기능)
 - [x] 설정 관리
 
 ## 📋 지원 파일 형식

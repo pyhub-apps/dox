@@ -25,6 +25,7 @@ glob = "0.3"
 pdf-extract = "0.9"
 lopdf = "0.35"
 colored = "2.1"
+calamine = "0.26"
 
 [dev-dependencies]
 tokio-test = "0.4"

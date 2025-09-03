@@ -1,10 +1,11 @@
 //! # dox-document
 //!
-//! Document processing crate for Word (.docx), PowerPoint (.pptx), and PDF files.
+//! Document processing crate for Word (.docx), PowerPoint (.pptx), Excel (.xlsx), and PDF files.
 //! This crate provides implementations of the DocumentProvider trait for
 //! Microsoft Office document formats and PDF documents.
 
 pub mod compat;
+pub mod excel;
 pub mod extract;
 pub mod markdown;
 pub mod pdf;
@@ -16,6 +17,7 @@ pub mod utils;
 pub mod word;
 
 // Re-export main types
+pub use excel::ExcelProvider;
 pub use pdf::{PdfMetadata, PdfProvider};
 pub use powerpoint::PowerPointProvider;
 pub use provider::{create_provider, DocumentError, DocumentProvider, DocumentType};

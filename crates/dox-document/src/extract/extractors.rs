@@ -2,7 +2,7 @@
 
 use super::{DocumentExtractor, ExtractMetadata, ExtractResult, ExtractedElement, ExtractedPage};
 use crate::provider::{DocumentError, DocumentProvider, DocumentType};
-use crate::{PdfProvider, PowerPointProvider, WordProvider};
+use crate::{ExcelProvider, PdfProvider, PowerPointProvider, WordProvider};
 use std::path::Path;
 use tracing::debug;
 
@@ -126,6 +126,68 @@ impl DocumentExtractor for PowerPointExtractor {
     }
 }
 
+/// Excel document extractor
+pub struct ExcelExtractor;
+
+impl ExcelExtractor {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl DocumentExtractor for ExcelExtractor {
+    fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
+        debug!(
+            "Extracting text from Excel document: {}",
+            path.display()
+        );
+
+        let provider = ExcelProvider::open(path)?;
+        let text = provider.get_text()?;
+
+        // For Excel documents, we treat the entire document as one page
+        // TODO: Implement proper sheet-by-sheet extraction
+        let page = ExtractedPage {
+            number: 1,
+            text: text.clone(),
+            elements: vec![ExtractedElement {
+                element_type: "data".to_string(),
+                content: text,
+                level: None,
+                marker: None,
+            }],
+            tables: vec![], // TODO: Implement table extraction for Excel
+        };
+
+        let metadata = ExtractMetadata {
+            title: None, // TODO: Extract from Excel document properties
+            author: None,
+            subject: None,
+            creator: None,
+            total_pages: 1, // TODO: Count actual sheets
+            created: None,
+            modified: None,
+        };
+
+        Ok(ExtractResult {
+            filename: path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
+            format: "Excel Spreadsheet (.xlsx)".to_string(),
+            pages: vec![page],
+            metadata,
+            success: true,
+            error: None,
+        })
+    }
+
+    fn supported_types(&self) -> &[DocumentType] {
+        &[DocumentType::Excel]
+    }
+}
+
 /// PDF document extractor
 pub struct PdfExtractor;
 
@@ -240,6 +302,7 @@ impl UniversalExtractor {
             Some("docx") => Box::new(WordExtractor::new()) as Box<dyn DocumentExtractor>,
             Some("pptx") => Box::new(PowerPointExtractor::new()) as Box<dyn DocumentExtractor>,
             Some("pdf") => Box::new(PdfExtractor::new()) as Box<dyn DocumentExtractor>,
+            Some("xlsx") => Box::new(ExcelExtractor::new()) as Box<dyn DocumentExtractor>,
             Some(ext) => {
                 return Err(DocumentError::UnsupportedFormat {
                     format: ext.to_string(),
@@ -263,6 +326,12 @@ impl Default for WordExtractor {
 }
 
 impl Default for PowerPointExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for ExcelExtractor {
     fn default() -> Self {
         Self::new()
     }

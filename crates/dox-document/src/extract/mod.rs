@@ -152,6 +152,7 @@ impl ExtractorFactory {
             Some(DocumentType::Word) => Ok(Box::new(extractors::WordExtractor::new())),
             Some(DocumentType::PowerPoint) => Ok(Box::new(extractors::PowerPointExtractor::new())),
             Some(DocumentType::Pdf) => Ok(Box::new(extractors::PdfExtractor::new())),
+            Some(DocumentType::Excel) => Ok(Box::new(extractors::ExcelExtractor::new())),
             None => Err(DocumentError::UnsupportedFormat {
                 format: ext.to_string(),
             }),
@@ -160,7 +161,7 @@ impl ExtractorFactory {
 
     /// Get all supported file extensions
     pub fn supported_extensions() -> Vec<&'static str> {
-        vec!["docx", "pptx", "pdf"]
+        vec!["docx", "pptx", "pdf", "xlsx"]
     }
 }
 

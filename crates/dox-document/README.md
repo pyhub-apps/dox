@@ -1,13 +1,15 @@
 # dox-document
 
-Document processing crate for Microsoft Office formats (Word and PowerPoint).
+Document processing crate for Microsoft Office formats (Word, PowerPoint, and Excel) and PDF documents.
 
 ## Overview
 
-The `dox-document` crate provides a unified interface for working with Microsoft Office document formats:
+The `dox-document` crate provides a unified interface for working with multiple document formats:
 
 - **Word documents** (`.docx`)
 - **PowerPoint presentations** (`.pptx`)
+- **Excel spreadsheets** (`.xlsx`)
+- **PDF documents** (`.pdf`)
 
 ## Features
 
@@ -40,7 +42,7 @@ doc.save().unwrap();
 ### Working with Specific Document Types
 
 ```rust
-use dox_document::{WordProvider, PowerPointProvider};
+use dox_document::{WordProvider, PowerPointProvider, ExcelProvider, PdfProvider};
 
 // Work with Word documents
 let mut word_doc = WordProvider::open(Path::new("document.docx")).unwrap();
@@ -58,6 +60,16 @@ println!("First slide: {}", slide_text);
 // Replace text in specific slide
 ppt_doc.replace_text_in_slide(0, "{{TITLE}}", "My Presentation").unwrap();
 ppt_doc.save().unwrap();
+
+// Work with Excel spreadsheets
+let excel_doc = ExcelProvider::open(Path::new("spreadsheet.xlsx")).unwrap();
+let text = excel_doc.get_text().unwrap();
+println!("Excel content: {}", text);
+
+// Work with PDF documents
+let pdf_doc = PdfProvider::open(Path::new("document.pdf")).unwrap();
+let pdf_text = pdf_doc.get_text().unwrap();
+println!("PDF content: {}", pdf_text);
 ```
 
 ## Document Provider Trait
@@ -104,16 +116,21 @@ The crate is organized into several modules:
 - `provider`: Core trait and factory function
 - `word`: Word document implementation
 - `powerpoint`: PowerPoint document implementation
+- `excel`: Excel document implementation
+- `pdf`: PDF document implementation
 - `utils`: Shared utilities for ZIP and XML processing
 
 ## Implementation Details
 
 ### Office Document Format
 
-Microsoft Office documents (`.docx`, `.pptx`) are ZIP archives containing XML files:
+Microsoft Office documents (`.docx`, `.pptx`, `.xlsx`) are ZIP archives containing XML files:
 
 - **Word**: Main content in `word/document.xml`
 - **PowerPoint**: Slide content in `ppt/slides/slide*.xml`
+- **Excel**: Sheet content in `xl/worksheets/sheet*.xml`
+
+PDF documents are processed using specialized PDF parsing libraries.
 
 The crate preserves the original document structure while allowing text modifications.
 
@@ -145,6 +162,9 @@ The test suite includes:
 
 - `zip`: ZIP archive handling
 - `quick-xml`: XML parsing and writing
+- `calamine`: Excel file reading
+- `pdf-extract`: PDF text extraction
+- `lopdf`: PDF document processing
 - `regex`: Pattern matching
 - `anyhow`: Error handling
 - `tracing`: Logging
