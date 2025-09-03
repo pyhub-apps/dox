@@ -1,6 +1,6 @@
 //! Compatibility layer for the original Document API
 
-use crate::provider::{create_provider, DocumentError, DocumentProvider};
+use crate::provider::{create_provider, DocumentProvider};
 use anyhow::Result;
 use std::path::Path;
 

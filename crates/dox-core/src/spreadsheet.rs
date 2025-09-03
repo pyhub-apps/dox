@@ -69,7 +69,6 @@ pub struct CellFormat {
     pub text_color: Option<String>,
 }
 
-
 /// Represents a sheet within a spreadsheet
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sheet {

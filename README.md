@@ -155,6 +155,97 @@ dox template -t template.docx -o result.docx --values data.yaml
 dox template -t template.pptx -o result.pptx --set "name=홍길동" --set "date=2025-09-02"
 ```
 
+### ⚙️ 설정 관리
+
+dox는 다층적인 설정 시스템을 제공하여 사용성을 극대화합니다.
+
+#### 우선순위
+1. **CLI 플래그** (최우선)
+2. **사용자 지정 설정 파일** (`--config` 플래그)
+3. **기본 설정 파일**
+4. **환경변수**
+5. **기본값**
+
+#### 설정 파일 위치
+- **macOS**: `~/Library/Application Support/dox/config.toml`
+- **Linux**: `~/.config/dox/config.toml` 
+- **Windows**: `%APPDATA%/dox/config.toml`
+
+#### 기본 설정 관리
+
+```bash
+# 설정 파일 초기화
+dox config --init
+
+# 현재 설정 보기
+dox config --list
+
+# 특정 값 조회
+dox config --get global.lang
+dox config --get openai.api_key
+
+# 값 설정
+dox config --set global.verbose=true
+dox config --set openai.api_key=sk-xxx
+dox config --set generate.model=gpt-4
+
+# 값 제거
+dox config --unset openai.api_key
+```
+
+#### 사용자 정의 설정 파일
+
+```bash
+# 특정 설정 파일 사용
+dox --config ~/work/dox-work.toml generate -p "업무 보고서"
+
+# 프로젝트별 설정
+dox --config ./project-config.toml replace -r rules.yml -p ./docs
+```
+
+#### 설정 예시 (config.toml)
+
+```toml
+[global]
+verbose = false
+quiet = false
+lang = "ko"
+no_color = false
+
+[replace]
+backup = true
+recursive = true
+concurrent = true
+max_workers = 4
+
+[generate]
+model = "gpt-3.5-turbo"
+max_tokens = 2000
+temperature = 0.7
+content_type = "blog"
+
+[openai]
+api_key = "sk-your-openai-key"
+model = "gpt-4"
+
+[claude]
+api_key = "sk-ant-your-claude-key"
+model = "claude-3-sonnet"
+```
+
+#### CLI 플래그와 설정 파일 통합
+
+```bash
+# 설정 파일에서 verbose=false이지만, CLI 플래그가 우선
+dox -v config --list  # 상세 출력으로 실행
+
+# 설정 파일에서 quiet=true이지만, CLI 플래그가 우선
+dox -v generate -p "테스트"  # 여전히 상세 출력
+
+# 사용자 정의 설정과 CLI 플래그 조합
+dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
+```
+
 ## 🔧 개발 현황
 
 이 Rust 포팅 버전은 현재 활발히 개발 중입니다. 다음 기능들이 구현되고 있습니다:
