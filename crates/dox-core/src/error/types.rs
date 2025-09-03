@@ -7,43 +7,43 @@ use thiserror::Error;
 pub enum DoxError {
     #[error("File not found: {path}")]
     FileNotFound { path: PathBuf },
-    
+
     #[error("Permission denied: {path}")]
     PermissionDenied { path: PathBuf },
-    
+
     #[error("Invalid document format: {path} (expected {expected})")]
     InvalidFormat { path: PathBuf, expected: String },
-    
+
     #[error("Document appears to be corrupted: {path}")]
     DocumentCorrupted { path: PathBuf },
-    
+
     #[error("Unsupported document type: {ext}")]
     UnsupportedDocumentType { ext: String },
-    
+
     #[error("Configuration error: {message}")]
     ConfigError { message: String },
-    
+
     #[error("Missing API key for {provider}")]
     MissingApiKey { provider: String },
-    
+
     #[error("API error from {provider}: {message}")]
     ApiError { provider: String, message: String },
-    
+
     #[error("Validation error for {field}: {message}")]
     ValidationError { field: String, message: String },
-    
+
     #[error("Template error: {message}")]
     TemplateError { message: String },
-    
+
     #[error("Parse error: {message}")]
     ParseError { message: String },
-    
+
     #[error("IO error: {message}")]
     IoError { message: String },
-    
+
     #[error("Network error: {message}")]
     NetworkError { message: String },
-    
+
     #[error("Concurrent processing error: {message}")]
     ConcurrentError { message: String },
 }
@@ -53,12 +53,12 @@ impl DoxError {
     pub fn file_not_found(path: impl Into<PathBuf>) -> Self {
         DoxError::FileNotFound { path: path.into() }
     }
-    
+
     /// Create a permission denied error
     pub fn permission_denied(path: impl Into<PathBuf>) -> Self {
         DoxError::PermissionDenied { path: path.into() }
     }
-    
+
     /// Create an invalid format error
     pub fn invalid_format(path: impl Into<PathBuf>, expected: impl Into<String>) -> Self {
         DoxError::InvalidFormat {
@@ -66,31 +66,31 @@ impl DoxError {
             expected: expected.into(),
         }
     }
-    
+
     /// Create a document corrupted error
     pub fn document_corrupted(path: impl Into<PathBuf>) -> Self {
         DoxError::DocumentCorrupted { path: path.into() }
     }
-    
+
     /// Create an unsupported document type error
     pub fn unsupported_type(ext: impl Into<String>) -> Self {
         DoxError::UnsupportedDocumentType { ext: ext.into() }
     }
-    
+
     /// Create a configuration error
     pub fn config(message: impl Into<String>) -> Self {
         DoxError::ConfigError {
             message: message.into(),
         }
     }
-    
+
     /// Create a missing API key error
     pub fn missing_api_key(provider: impl Into<String>) -> Self {
         DoxError::MissingApiKey {
             provider: provider.into(),
         }
     }
-    
+
     /// Create an API error
     pub fn api_error(provider: impl Into<String>, message: impl Into<String>) -> Self {
         DoxError::ApiError {
@@ -98,7 +98,7 @@ impl DoxError {
             message: message.into(),
         }
     }
-    
+
     /// Create a validation error
     pub fn validation(field: impl Into<String>, message: impl Into<String>) -> Self {
         DoxError::ValidationError {
@@ -150,12 +150,14 @@ impl DoxError {
             DoxError::ConcurrentError { .. } => ErrorCode::ConcurrentError,
         }
     }
-    
+
     /// Check if the error is recoverable
     pub fn is_recoverable(&self) -> bool {
         matches!(
             self,
-            DoxError::NetworkError { .. } | DoxError::ApiError { .. } | DoxError::ConcurrentError { .. }
+            DoxError::NetworkError { .. }
+                | DoxError::ApiError { .. }
+                | DoxError::ConcurrentError { .. }
         )
     }
 }
@@ -163,19 +165,15 @@ impl DoxError {
 impl From<std::io::Error> for DoxError {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => {
-                DoxError::IoError {
-                    message: "File or directory not found".to_string(),
-                }
-            }
-            std::io::ErrorKind::PermissionDenied => {
-                DoxError::IoError {
-                    message: "Permission denied".to_string(),
-                }
-            }
+            std::io::ErrorKind::NotFound => DoxError::IoError {
+                message: "File or directory not found".to_string(),
+            },
+            std::io::ErrorKind::PermissionDenied => DoxError::IoError {
+                message: "Permission denied".to_string(),
+            },
             _ => DoxError::IoError {
                 message: err.to_string(),
-            }
+            },
         }
     }
 }
@@ -215,15 +213,13 @@ impl From<toml::de::Error> for DoxError {
 impl From<zip::result::ZipError> for DoxError {
     fn from(err: zip::result::ZipError) -> Self {
         match err {
-            zip::result::ZipError::FileNotFound => {
-                DoxError::IoError {
-                    message: "Archive file not found".to_string(),
-                }
-            }
+            zip::result::ZipError::FileNotFound => DoxError::IoError {
+                message: "Archive file not found".to_string(),
+            },
             zip::result::ZipError::Io(io_err) => DoxError::from(io_err),
             _ => DoxError::DocumentCorrupted {
                 path: PathBuf::from("unknown"),
-            }
+            },
         }
     }
 }
@@ -242,7 +238,7 @@ impl From<calamine::Error> for DoxError {
             calamine::Error::Io(io_err) => DoxError::from(io_err),
             _ => DoxError::DocumentCorrupted {
                 path: PathBuf::from("unknown"),
-            }
+            },
         }
     }
 }
@@ -266,7 +262,7 @@ impl DoxError {
             _ => self,
         }
     }
-    
+
     /// Get user-friendly error message with suggestions
     pub fn user_message(&self) -> String {
         match self {
@@ -366,7 +362,7 @@ pub trait ErrorContext<T> {
     fn context<C>(self, context: C) -> Result<T, DoxError>
     where
         C: fmt::Display + Send + Sync + 'static;
-    
+
     /// Add context with a closure (lazy evaluation)
     fn with_context<C, F>(self, f: F) -> Result<T, DoxError>
     where
@@ -384,7 +380,7 @@ where
     {
         self.map_err(|e| e.into().with_context(context))
     }
-    
+
     fn with_context<C, F>(self, f: F) -> Result<T, DoxError>
     where
         C: fmt::Display + Send + Sync + 'static,

@@ -24,7 +24,7 @@ impl Rule {
             new: new.into(),
         }
     }
-    
+
     /// Validate the rule
     pub fn validate(&self) -> Result<()> {
         if self.old.is_empty() {
@@ -75,20 +75,20 @@ pub struct ReplaceResults {
 /// Load replacement rules from a YAML file
 pub fn load_rules(path: &Path) -> Result<Vec<Rule>> {
     use std::fs;
-    
+
     if !path.exists() {
         anyhow::bail!("Rules file not found: {}", path.display());
     }
-    
+
     let content = fs::read_to_string(path)?;
     let rules: Vec<Rule> = serde_yaml::from_str(&content)?;
-    
+
     // Validate all rules
     for (i, rule) in rules.iter().enumerate() {
         rule.validate()
             .map_err(|e| anyhow::anyhow!("Invalid rule at index {}: {}", i, e))?;
     }
-    
+
     Ok(rules)
 }
 
@@ -99,23 +99,23 @@ pub fn find_document_files(
     exclude: Option<&str>,
 ) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    
+
     if path.is_file() {
         if is_supported_document(path) {
             files.push(path.to_path_buf());
         }
         return Ok(files);
     }
-    
+
     let walker = if recursive {
         WalkDir::new(path)
     } else {
         WalkDir::new(path).max_depth(1)
     };
-    
+
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
-        
+
         // Skip if matches exclude pattern
         if let Some(pattern) = exclude {
             if let Some(file_name) = path.file_name() {
@@ -124,12 +124,12 @@ pub fn find_document_files(
                 }
             }
         }
-        
+
         if path.is_file() && is_supported_document(path) {
             files.push(path.to_path_buf());
         }
     }
-    
+
     Ok(files)
 }
 

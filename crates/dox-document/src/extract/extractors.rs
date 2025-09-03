@@ -1,8 +1,8 @@
 //! Document-specific extractor implementations
 
-use super::{DocumentExtractor, ExtractResult, ExtractedPage, ExtractedElement, ExtractMetadata};
-use crate::provider::{DocumentError, DocumentType, DocumentProvider};
-use crate::{WordProvider, PowerPointProvider, PdfProvider};
+use super::{DocumentExtractor, ExtractMetadata, ExtractResult, ExtractedElement, ExtractedPage};
+use crate::provider::{DocumentError, DocumentProvider, DocumentType};
+use crate::{PdfProvider, PowerPointProvider, WordProvider};
 use std::path::Path;
 use tracing::debug;
 
@@ -18,10 +18,10 @@ impl WordExtractor {
 impl DocumentExtractor for WordExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
         debug!("Extracting text from Word document: {}", path.display());
-        
+
         let provider = WordProvider::open(path)?;
         let text = provider.get_text()?;
-        
+
         // For Word documents, we treat the entire document as one page
         let page = ExtractedPage {
             number: 1,
@@ -34,7 +34,7 @@ impl DocumentExtractor for WordExtractor {
             }],
             tables: vec![], // TODO: Implement table extraction for Word
         };
-        
+
         let metadata = ExtractMetadata {
             title: None, // TODO: Extract from Word document properties
             author: None,
@@ -44,9 +44,10 @@ impl DocumentExtractor for WordExtractor {
             created: None,
             modified: None,
         };
-        
+
         Ok(ExtractResult {
-            filename: path.file_name()
+            filename: path
+                .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string(),
@@ -57,7 +58,7 @@ impl DocumentExtractor for WordExtractor {
             error: None,
         })
     }
-    
+
     fn supported_types(&self) -> &[DocumentType] {
         &[DocumentType::Word]
     }
@@ -74,11 +75,14 @@ impl PowerPointExtractor {
 
 impl DocumentExtractor for PowerPointExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
-        debug!("Extracting text from PowerPoint document: {}", path.display());
-        
+        debug!(
+            "Extracting text from PowerPoint document: {}",
+            path.display()
+        );
+
         let provider = PowerPointProvider::open(path)?;
         let text = provider.get_text()?;
-        
+
         // For PowerPoint documents, we treat the entire document as one page for now
         // TODO: Implement proper slide-by-slide extraction
         let page = ExtractedPage {
@@ -92,7 +96,7 @@ impl DocumentExtractor for PowerPointExtractor {
             }],
             tables: vec![], // TODO: Implement table extraction for PowerPoint
         };
-        
+
         let metadata = ExtractMetadata {
             title: None, // TODO: Extract from PowerPoint document properties
             author: None,
@@ -102,9 +106,10 @@ impl DocumentExtractor for PowerPointExtractor {
             created: None,
             modified: None,
         };
-        
+
         Ok(ExtractResult {
-            filename: path.file_name()
+            filename: path
+                .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string(),
@@ -115,7 +120,7 @@ impl DocumentExtractor for PowerPointExtractor {
             error: None,
         })
     }
-    
+
     fn supported_types(&self) -> &[DocumentType] {
         &[DocumentType::PowerPoint]
     }
@@ -128,7 +133,7 @@ impl PdfExtractor {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Extract pages from PDF text
     fn split_into_pages(&self, full_text: &str) -> Vec<ExtractedPage> {
         // Simple page splitting - look for form feed characters or page break patterns
@@ -139,34 +144,36 @@ impl PdfExtractor {
             // If no clear page breaks, treat as single page
             vec![full_text]
         };
-        
-        pages.into_iter()
+
+        pages
+            .into_iter()
             .enumerate()
             .filter(|(_, text)| !text.trim().is_empty())
             .map(|(index, text)| {
                 let clean_text = text.trim().to_string();
-                
+
                 // Basic element extraction - split into paragraphs
                 let elements: Vec<ExtractedElement> = clean_text
                     .split("\n\n")
                     .filter(|para| !para.trim().is_empty())
                     .map(|para| {
                         let para_text = para.trim().replace('\n', " ");
-                        
+
                         // Simple heuristic for detecting headings
-                        let is_heading = para_text.len() < 100 && 
-                                       para_text.chars().any(|c| c.is_uppercase()) &&
-                                       !para_text.ends_with('.');
-                        
+                        let is_heading = para_text.len() < 100
+                            && para_text.chars().any(|c| c.is_uppercase())
+                            && !para_text.ends_with('.');
+
                         ExtractedElement {
-                            element_type: if is_heading { "heading" } else { "paragraph" }.to_string(),
+                            element_type: if is_heading { "heading" } else { "paragraph" }
+                                .to_string(),
                             content: para_text,
                             level: if is_heading { Some(2) } else { None },
                             marker: None,
                         }
                     })
                     .collect();
-                
+
                 ExtractedPage {
                     number: index + 1,
                     text: clean_text,
@@ -181,13 +188,13 @@ impl PdfExtractor {
 impl DocumentExtractor for PdfExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
         debug!("Extracting text from PDF document: {}", path.display());
-        
+
         let provider = PdfProvider::open(path)?;
-        
+
         // Extract text content
         let full_text = provider.get_text()?;
         let pages = self.split_into_pages(&full_text);
-        
+
         // Extract metadata
         let pdf_metadata = provider.get_metadata().unwrap_or_default();
         let metadata = ExtractMetadata {
@@ -196,12 +203,13 @@ impl DocumentExtractor for PdfExtractor {
             subject: pdf_metadata.subject,
             creator: pdf_metadata.creator,
             total_pages: pdf_metadata.page_count,
-            created: None, // TODO: Extract creation date
+            created: None,  // TODO: Extract creation date
             modified: None, // TODO: Extract modification date
         };
-        
+
         Ok(ExtractResult {
-            filename: path.file_name()
+            filename: path
+                .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string(),
@@ -212,7 +220,7 @@ impl DocumentExtractor for PdfExtractor {
             error: None,
         })
     }
-    
+
     fn supported_types(&self) -> &[DocumentType] {
         &[DocumentType::Pdf]
     }
@@ -225,21 +233,25 @@ impl UniversalExtractor {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Extract from any supported document format
     pub fn extract_from_path(path: &Path) -> Result<ExtractResult, DocumentError> {
         let extractor = match path.extension().and_then(|s| s.to_str()) {
             Some("docx") => Box::new(WordExtractor::new()) as Box<dyn DocumentExtractor>,
             Some("pptx") => Box::new(PowerPointExtractor::new()) as Box<dyn DocumentExtractor>,
             Some("pdf") => Box::new(PdfExtractor::new()) as Box<dyn DocumentExtractor>,
-            Some(ext) => return Err(DocumentError::UnsupportedFormat { 
-                format: ext.to_string() 
-            }),
-            None => return Err(DocumentError::UnsupportedFormat { 
-                format: "none".to_string() 
-            }),
+            Some(ext) => {
+                return Err(DocumentError::UnsupportedFormat {
+                    format: ext.to_string(),
+                })
+            }
+            None => {
+                return Err(DocumentError::UnsupportedFormat {
+                    format: "none".to_string(),
+                })
+            }
         };
-        
+
         extractor.extract(path)
     }
 }

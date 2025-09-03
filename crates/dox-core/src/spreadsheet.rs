@@ -60,7 +60,7 @@ impl Cell {
 }
 
 /// Cell formatting information
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct CellFormat {
     pub bold: bool,
     pub italic: bool,
@@ -69,17 +69,6 @@ pub struct CellFormat {
     pub text_color: Option<String>,
 }
 
-impl Default for CellFormat {
-    fn default() -> Self {
-        Self {
-            bold: false,
-            italic: false,
-            font_size: None,
-            background_color: None,
-            text_color: None,
-        }
-    }
-}
 
 /// Represents a sheet within a spreadsheet
 #[derive(Debug, Clone, Serialize, Deserialize)]

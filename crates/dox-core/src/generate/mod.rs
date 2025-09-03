@@ -3,23 +3,22 @@
 //! This module provides the core abstractions and traits for AI-powered
 //! content generation that will be used by various AI providers.
 
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use anyhow::{Result, anyhow};
-
 
 /// Trait for AI content generation providers
 #[async_trait::async_trait]
 pub trait ContentGenerator: Send + Sync {
     /// Generate content based on the provided request
     async fn generate(&self, request: &GenerationRequest) -> Result<GenerationResponse>;
-    
+
     /// Get the provider name
     fn provider_name(&self) -> &str;
-    
+
     /// Get supported models for this provider
     fn supported_models(&self) -> Vec<String>;
-    
+
     /// Validate if a model is supported
     fn supports_model(&self, model: &str) -> bool {
         self.supported_models().contains(&model.to_string())
@@ -31,34 +30,34 @@ pub trait ContentGenerator: Send + Sync {
 pub struct GenerationRequest {
     /// The prompt for content generation
     pub prompt: String,
-    
+
     /// Type of content to generate
     pub content_type: ContentType,
-    
+
     /// AI model to use
     pub model: String,
-    
+
     /// Maximum number of tokens in the response
     pub max_tokens: usize,
-    
+
     /// Temperature for randomness (0.0-1.0)
     pub temperature: f32,
-    
+
     /// Language for the generated content
     pub language: String,
-    
+
     /// Target audience
     pub audience: String,
-    
+
     /// Tone of voice
     pub tone: String,
-    
+
     /// Additional context to include
     pub context: Option<String>,
-    
+
     /// Whether to stream the response
     pub stream: bool,
-    
+
     /// Additional parameters for the provider
     pub provider_params: HashMap<String, serde_json::Value>,
 }
@@ -68,16 +67,16 @@ pub struct GenerationRequest {
 pub struct GenerationResponse {
     /// The generated content
     pub content: String,
-    
+
     /// Model used for generation
     pub model: String,
-    
+
     /// Provider that generated the content
     pub provider: String,
-    
+
     /// Token usage information
     pub usage: Option<Usage>,
-    
+
     /// Additional metadata
     pub metadata: HashMap<String, serde_json::Value>,
 }
@@ -115,7 +114,7 @@ impl ContentType {
             ContentType::Custom => "custom",
         }
     }
-    
+
     pub fn description(&self) -> &str {
         match self {
             ContentType::Blog => "Blog post or article",
@@ -127,7 +126,7 @@ impl ContentType {
             ContentType::Custom => "Custom content",
         }
     }
-    
+
     pub fn default_instructions(&self) -> &str {
         match self {
             ContentType::Blog => {
@@ -175,24 +174,24 @@ impl TemplateEngine {
             variables: HashMap::new(),
         }
     }
-    
+
     pub fn with_variables(variables: HashMap<String, String>) -> Self {
         Self { variables }
     }
-    
+
     pub fn add_variable(&mut self, key: String, value: String) {
         self.variables.insert(key, value);
     }
-    
+
     pub fn render(&self, template: &str) -> Result<String> {
         let mut result = template.to_string();
-        
+
         // Replace variables in {{key}} format
         for (key, value) in &self.variables {
             let placeholder = format!("{{{{{}}}}}", key);
             result = result.replace(&placeholder, value);
         }
-        
+
         // Check for unresolved placeholders
         if result.contains("{{") && result.contains("}}") {
             let unresolved: Vec<&str> = result
@@ -200,7 +199,7 @@ impl TemplateEngine {
                 .skip(1)
                 .filter_map(|s| s.split("}}").next())
                 .collect();
-            
+
             if !unresolved.is_empty() {
                 return Err(anyhow!(
                     "Template contains unresolved placeholders: {}",
@@ -208,7 +207,7 @@ impl TemplateEngine {
                 ));
             }
         }
-        
+
         Ok(result)
     }
 }
@@ -271,7 +270,9 @@ impl BuiltinTemplates {
                     Include: Executive summary, Problem statement, Solution, Benefits, Implementation plan, Next steps."
                 )
             }
-            (ContentType::Summary, _) => "Create a concise summary of the following content:\n\n{{prompt}}".to_string(),
+            (ContentType::Summary, _) => {
+                "Create a concise summary of the following content:\n\n{{prompt}}".to_string()
+            }
             (ContentType::Custom, _) => "{{prompt}}".to_string(),
         }
     }

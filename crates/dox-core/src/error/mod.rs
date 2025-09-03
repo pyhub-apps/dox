@@ -1,5 +1,5 @@
-mod types;
 mod recovery;
+mod types;
 
 #[cfg(test)]
 mod tests;
@@ -8,4 +8,4 @@ mod tests;
 pub use types::*;
 
 // Re-export recovery utilities
-pub use recovery::{RetryPolicy, retry_async, retry_sync, CircuitBreaker, with_circuit_breaker};
+pub use recovery::{retry_async, retry_sync, with_circuit_breaker, CircuitBreaker, RetryPolicy};

@@ -1,8 +1,8 @@
+use colored::Colorize;
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
     EnvFilter,
 };
-use colored::Colorize;
 
 /// Logging configuration
 #[derive(Debug, Clone)]
@@ -53,7 +53,7 @@ impl LogConfig {
             span_events: FmtSpan::NEW | FmtSpan::CLOSE,
         }
     }
-    
+
     /// Create a quiet configuration (errors only)
     pub fn quiet() -> Self {
         Self {
@@ -70,13 +70,13 @@ impl LogConfig {
 /// Initialize the logging system with the given configuration
 pub fn init_logging(config: LogConfig) -> anyhow::Result<()> {
     let env_filter = build_env_filter(&config.level)?;
-    
+
     match config.format {
         LogFormat::Plain => init_plain_logging(config, env_filter),
         LogFormat::Pretty => init_pretty_logging(config, env_filter),
         LogFormat::Json => init_json_logging(config, env_filter),
     }
-    
+
     Ok(())
 }
 
@@ -112,7 +112,7 @@ fn init_pretty_logging(config: LogConfig, filter: EnvFilter) {
         .with_thread_names(config.include_thread)
         .with_file(config.include_location)
         .with_line_number(config.include_location);
-    
+
     tracing_subscriber::fmt()
         .event_format(format)
         .with_env_filter(filter)
@@ -143,19 +143,22 @@ pub struct ErrorReporter;
 impl ErrorReporter {
     /// Report an error to the user with formatted output
     pub fn report(error: &crate::error::DoxError, verbose: bool) {
-        
         eprintln!();
         eprintln!("{}", "Error:".red().bold());
-        
+
         // Show error code if available
         let code = error.code();
-        eprintln!("  {} {}", "Code:".yellow(), format!("{:?}", code).bright_black());
-        
+        eprintln!(
+            "  {} {}",
+            "Code:".yellow(),
+            format!("{:?}", code).bright_black()
+        );
+
         // Show main error message
         if verbose {
             // Show full error chain in verbose mode
             eprintln!("  {} {}", "Message:".yellow(), error);
-            
+
             // Show file/line if available through backtrace
             if std::env::var("RUST_BACKTRACE").is_ok() {
                 eprintln!("\n{}", "Stack trace:".yellow());
@@ -172,35 +175,40 @@ impl ErrorReporter {
                 }
             }
         }
-        
+
         // Show recovery hint if error is recoverable
         if error.is_recoverable() {
-            eprintln!("\n  {} This error may be temporary. Please try again.", "↻".green());
+            eprintln!(
+                "\n  {} This error may be temporary. Please try again.",
+                "↻".green()
+            );
         }
-        
+
         eprintln!();
-        
+
         // Show help text
         if !verbose {
-            eprintln!("For more details, run with {} or set {}", 
-                     "--verbose".bright_blue(), 
-                     "RUST_LOG=debug".bright_blue());
+            eprintln!(
+                "For more details, run with {} or set {}",
+                "--verbose".bright_blue(),
+                "RUST_LOG=debug".bright_blue()
+            );
         }
     }
-    
+
     /// Report a generic error (non-DoxError)
     pub fn report_generic<E: std::error::Error + ?Sized>(error: &E, context: &str) {
         eprintln!();
         eprintln!("{} {}", "Error:".red().bold(), context);
         eprintln!("  {}", error);
-        
+
         // Print error chain if available
         let mut source = error.source();
         while let Some(err) = source {
             eprintln!("  {} {}", "Caused by:".yellow(), err);
             source = err.source();
         }
-        
+
         eprintln!();
     }
 }
@@ -243,11 +251,11 @@ impl ProgressLogger {
             start_time: std::time::Instant::now(),
         }
     }
-    
+
     pub fn update(&self, message: impl std::fmt::Display) {
         tracing::info!("{}: {}", self.operation, message);
     }
-    
+
     pub fn complete(self) {
         let duration = self.start_time.elapsed();
         tracing::info!(
@@ -256,7 +264,7 @@ impl ProgressLogger {
             duration.as_secs_f64()
         );
     }
-    
+
     pub fn failed(self, error: &crate::error::DoxError) {
         let duration = self.start_time.elapsed();
         tracing::error!(
@@ -271,14 +279,14 @@ impl ProgressLogger {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_log_config_default() {
         let config = LogConfig::default();
         assert_eq!(config.level, "info");
         assert_eq!(config.format, LogFormat::Pretty);
     }
-    
+
     #[test]
     fn test_log_config_verbose() {
         let config = LogConfig::verbose();
@@ -286,7 +294,7 @@ mod tests {
         assert!(config.include_location);
         assert!(config.include_thread);
     }
-    
+
     #[test]
     fn test_log_config_quiet() {
         let config = LogConfig::quiet();

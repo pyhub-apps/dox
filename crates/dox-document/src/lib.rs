@@ -4,32 +4,34 @@
 //! This crate provides implementations of the DocumentProvider trait for
 //! Microsoft Office document formats and PDF documents.
 
-pub mod provider;
-pub mod word;
-pub mod powerpoint;
-pub mod pdf;
-pub mod utils;
 pub mod compat;
+pub mod extract;
+pub mod markdown;
+pub mod pdf;
+pub mod powerpoint;
+pub mod provider;
 pub mod replace;
 pub mod template;
-pub mod markdown;
-pub mod extract;
+pub mod utils;
+pub mod word;
 
 // Re-export main types
-pub use provider::{DocumentProvider, DocumentError, DocumentType, create_provider};
-pub use word::WordProvider;
+pub use pdf::{PdfMetadata, PdfProvider};
 pub use powerpoint::PowerPointProvider;
-pub use pdf::{PdfProvider, PdfMetadata};
-pub use utils::{extract_zip, create_zip, is_office_document};
+pub use provider::{create_provider, DocumentError, DocumentProvider, DocumentType};
+pub use utils::{create_zip, extract_zip, is_office_document};
+pub use word::WordProvider;
 
 // Re-export compatibility layer
 pub use compat::{Document, DocumentOps};
 
 // Re-export document processing modules
+pub use extract::{
+    ExtractFormat, ExtractMetadata, ExtractResult, ExtractorFactory, OutputFormatter,
+};
+pub use markdown::*;
 pub use replace::*;
 pub use template::*;
-pub use markdown::*;
-pub use extract::{ExtractResult, ExtractFormat, ExtractMetadata, ExtractorFactory, OutputFormatter};
 
 /// Result type for document operations
 pub type DocumentResult<T> = Result<T, DocumentError>;

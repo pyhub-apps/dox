@@ -19,8 +19,47 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-quality-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-quality-
+            ${{ runner.os }}-cargo-
+      
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic -A clippy::module_inception -A clippy::useless_format -A clippy::derivable_impls -A clippy::type_complexity -A clippy::bind_instead_of_map
+      
+      - name: Run tests
+        run: cargo test --lib --all-features
+      
+      - name: Check documentation
+        run: cargo doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+
   version:
     name: Calculate Version
+    needs: quality-checks
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.headver.outputs.version }}
@@ -74,7 +113,7 @@ jobs:
 
   build:
     name: Build
-    needs: version
+    needs: [quality-checks, version]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -231,7 +270,7 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: [version, build]
+    needs: [quality-checks, version, build]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     

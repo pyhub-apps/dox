@@ -3,8 +3,8 @@
 use anyhow::{anyhow, Result};
 use calamine::{open_workbook, Reader, Xlsx};
 use dox_core::{
-    Cell, ReadOptions, RangeRef, Ruleset, Sheet, SheetId,
-    SpreadsheetMetadata, SpreadsheetProvider, WriteOptions,
+    Cell, RangeRef, ReadOptions, Ruleset, Sheet, SheetId, SpreadsheetMetadata, SpreadsheetProvider,
+    WriteOptions,
 };
 use rust_xlsxwriter::Workbook;
 use std::collections::HashMap;
@@ -82,14 +82,13 @@ impl SpreadsheetProvider for ExcelProvider {
         let path = self.resolve_path(sheet_id);
         let (sheet_name, _range_str) = self.parse_range(range);
         let _options = options.unwrap_or_default();
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             debug!("Reading Excel file: {:?}", path);
 
             // Open the workbook
-            let mut workbook: Xlsx<_> = open_workbook(&path)
-                .map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
+            let mut workbook: Xlsx<_> =
+                open_workbook(&path).map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
 
             // Get the sheet
             let sheet_name = sheet_name.unwrap_or_else(|| {
@@ -129,9 +128,8 @@ impl SpreadsheetProvider for ExcelProvider {
         let path = self.resolve_path(sheet_id);
         let (sheet_name, _range_str) = self.parse_range(range);
         let _options = options.unwrap_or_default();
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             debug!("Writing to Excel file: {:?}", path);
 
             // Create a new workbook
@@ -163,14 +161,13 @@ impl SpreadsheetProvider for ExcelProvider {
         sheet_id: &SheetId,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<Sheet>>> + Send + '_>> {
         let path = self.resolve_path(sheet_id);
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             debug!("Listing sheets in Excel file: {:?}", path);
 
             // Open the workbook
-            let workbook: Xlsx<_> = open_workbook(&path)
-                .map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
+            let workbook: Xlsx<_> =
+                open_workbook(&path).map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
 
             // Get sheet names
             let sheets: Vec<Sheet> = workbook
@@ -179,7 +176,7 @@ impl SpreadsheetProvider for ExcelProvider {
                 .map(|name| Sheet {
                     name,
                     id: None,
-                    row_count: 0,    // Would need to read each sheet to get actual counts
+                    row_count: 0, // Would need to read each sheet to get actual counts
                     column_count: 0, // Would need to read each sheet to get actual counts
                 })
                 .collect();
@@ -196,14 +193,13 @@ impl SpreadsheetProvider for ExcelProvider {
     ) -> Pin<Box<dyn Future<Output = Result<usize>> + Send + '_>> {
         let path = self.resolve_path(sheet_id);
         let ruleset_name = ruleset.name.clone();
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             info!("Applying ruleset '{}' to Excel file", ruleset_name);
 
             // Read the entire workbook
-            let mut workbook: Xlsx<_> = open_workbook(&path)
-                .map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
+            let mut workbook: Xlsx<_> =
+                open_workbook(&path).map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
 
             let mut total_replacements = 0;
 
@@ -234,9 +230,8 @@ impl SpreadsheetProvider for ExcelProvider {
     ) -> Pin<Box<dyn Future<Output = Result<Sheet>> + Send + '_>> {
         let _path = self.resolve_path(sheet_id);
         let sheet_name = name.to_string();
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             info!("Creating sheet '{}' in Excel file", sheet_name);
 
             // TODO: Implement sheet creation
@@ -260,9 +255,8 @@ impl SpreadsheetProvider for ExcelProvider {
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + '_>> {
         let _path = self.resolve_path(sheet_id);
         let sheet_name = sheet_name.to_string();
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             info!("Deleting sheet '{}' from Excel file", sheet_name);
 
             // TODO: Implement sheet deletion
@@ -279,14 +273,13 @@ impl SpreadsheetProvider for ExcelProvider {
         sheet_id: &SheetId,
     ) -> Pin<Box<dyn Future<Output = Result<SpreadsheetMetadata>> + Send + '_>> {
         let path = self.resolve_path(sheet_id);
-        
-        Box::pin(async move {
 
+        Box::pin(async move {
             debug!("Getting metadata for Excel file: {:?}", path);
 
             // Open the workbook
-            let workbook: Xlsx<_> = open_workbook(&path)
-                .map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
+            let workbook: Xlsx<_> =
+                open_workbook(&path).map_err(|e| anyhow!("Failed to open Excel file: {}", e))?;
 
             // Get sheet information
             let sheets: Vec<Sheet> = workbook

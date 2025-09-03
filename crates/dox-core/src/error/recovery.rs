@@ -1,8 +1,8 @@
+use crate::error::{DoxError, DoxResult};
 use std::future::Future;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{debug, warn, error};
-use crate::error::{DoxError, DoxResult};
+use tracing::{debug, error, warn};
 
 /// Retry policy configuration
 #[derive(Debug, Clone)]
@@ -42,7 +42,7 @@ impl RetryPolicy {
             jitter: true,
         }
     }
-    
+
     /// Create a policy for file operations
     pub fn for_file_io() -> Self {
         Self {
@@ -53,7 +53,7 @@ impl RetryPolicy {
             jitter: false,
         }
     }
-    
+
     /// Create an aggressive retry policy
     pub fn aggressive() -> Self {
         Self {
@@ -64,19 +64,19 @@ impl RetryPolicy {
             jitter: true,
         }
     }
-    
+
     /// Calculate delay for the given attempt number
     fn calculate_delay(&self, attempt: u32) -> Duration {
         let mut delay = self.initial_delay.as_millis() as f64;
-        
+
         // Apply exponential backoff
         for _ in 1..attempt {
             delay *= self.backoff_multiplier;
         }
-        
+
         // Cap at max delay
         delay = delay.min(self.max_delay.as_millis() as f64);
-        
+
         // Add jitter if enabled
         if self.jitter {
             use rand::Rng;
@@ -84,7 +84,7 @@ impl RetryPolicy {
             let jitter_factor = rng.gen_range(0.8..1.2);
             delay *= jitter_factor;
         }
-        
+
         Duration::from_millis(delay as u64)
     }
 }
@@ -100,10 +100,13 @@ where
     Fut: Future<Output = DoxResult<T>>,
 {
     let mut last_error = None;
-    
+
     for attempt in 1..=policy.max_attempts {
-        debug!("Attempting {} (attempt {}/{})", operation_name, attempt, policy.max_attempts);
-        
+        debug!(
+            "Attempting {} (attempt {}/{})",
+            operation_name, attempt, policy.max_attempts
+        );
+
         match operation().await {
             Ok(result) => {
                 if attempt > 1 {
@@ -114,13 +117,19 @@ where
             Err(err) => {
                 // Check if error is recoverable
                 if !err.is_recoverable() {
-                    error!("{} failed with non-recoverable error: {}", operation_name, err);
+                    error!(
+                        "{} failed with non-recoverable error: {}",
+                        operation_name, err
+                    );
                     return Err(err);
                 }
-                
-                warn!("{} failed (attempt {}/{}): {}", operation_name, attempt, policy.max_attempts, err);
+
+                warn!(
+                    "{} failed (attempt {}/{}): {}",
+                    operation_name, attempt, policy.max_attempts, err
+                );
                 last_error = Some(err);
-                
+
                 // Don't sleep after the last attempt
                 if attempt < policy.max_attempts {
                     let delay = policy.calculate_delay(attempt);
@@ -130,15 +139,19 @@ where
             }
         }
     }
-    
+
     // All attempts failed
-    let err = last_error.unwrap_or_else(|| {
-        DoxError::ConcurrentError {
-            message: format!("{} failed after {} attempts", operation_name, policy.max_attempts),
-        }
+    let err = last_error.unwrap_or_else(|| DoxError::ConcurrentError {
+        message: format!(
+            "{} failed after {} attempts",
+            operation_name, policy.max_attempts
+        ),
     });
-    
-    error!("{} failed after {} attempts", operation_name, policy.max_attempts);
+
+    error!(
+        "{} failed after {} attempts",
+        operation_name, policy.max_attempts
+    );
     Err(err)
 }
 
@@ -152,10 +165,13 @@ where
     F: FnMut() -> DoxResult<T>,
 {
     let mut last_error = None;
-    
+
     for attempt in 1..=policy.max_attempts {
-        debug!("Attempting {} (attempt {}/{})", operation_name, attempt, policy.max_attempts);
-        
+        debug!(
+            "Attempting {} (attempt {}/{})",
+            operation_name, attempt, policy.max_attempts
+        );
+
         match operation() {
             Ok(result) => {
                 if attempt > 1 {
@@ -166,13 +182,19 @@ where
             Err(err) => {
                 // Check if error is recoverable
                 if !err.is_recoverable() {
-                    error!("{} failed with non-recoverable error: {}", operation_name, err);
+                    error!(
+                        "{} failed with non-recoverable error: {}",
+                        operation_name, err
+                    );
                     return Err(err);
                 }
-                
-                warn!("{} failed (attempt {}/{}): {}", operation_name, attempt, policy.max_attempts, err);
+
+                warn!(
+                    "{} failed (attempt {}/{}): {}",
+                    operation_name, attempt, policy.max_attempts, err
+                );
                 last_error = Some(err);
-                
+
                 // Don't sleep after the last attempt
                 if attempt < policy.max_attempts {
                     let delay = policy.calculate_delay(attempt);
@@ -182,15 +204,19 @@ where
             }
         }
     }
-    
+
     // All attempts failed
-    let err = last_error.unwrap_or_else(|| {
-        DoxError::ConcurrentError {
-            message: format!("{} failed after {} attempts", operation_name, policy.max_attempts),
-        }
+    let err = last_error.unwrap_or_else(|| DoxError::ConcurrentError {
+        message: format!(
+            "{} failed after {} attempts",
+            operation_name, policy.max_attempts
+        ),
     });
-    
-    error!("{} failed after {} attempts", operation_name, policy.max_attempts);
+
+    error!(
+        "{} failed after {} attempts",
+        operation_name, policy.max_attempts
+    );
     Err(err)
 }
 
@@ -225,7 +251,7 @@ impl CircuitBreaker {
             last_failure_time: None,
         }
     }
-    
+
     /// Check if the circuit breaker allows the operation
     pub fn can_proceed(&mut self) -> bool {
         match self.state {
@@ -248,7 +274,7 @@ impl CircuitBreaker {
             CircuitState::HalfOpen => true,
         }
     }
-    
+
     /// Record a successful operation
     pub fn record_success(&mut self) {
         match self.state {
@@ -258,7 +284,10 @@ impl CircuitBreaker {
             CircuitState::HalfOpen => {
                 self.success_count += 1;
                 if self.success_count >= self.success_threshold {
-                    debug!("Circuit breaker closing after {} successes", self.success_count);
+                    debug!(
+                        "Circuit breaker closing after {} successes",
+                        self.success_count
+                    );
                     self.state = CircuitState::Closed;
                     self.failure_count = 0;
                     self.success_count = 0;
@@ -271,16 +300,19 @@ impl CircuitBreaker {
             }
         }
     }
-    
+
     /// Record a failed operation
     pub fn record_failure(&mut self) {
         self.last_failure_time = Some(std::time::Instant::now());
-        
+
         match self.state {
             CircuitState::Closed => {
                 self.failure_count += 1;
                 if self.failure_count >= self.failure_threshold {
-                    warn!("Circuit breaker opening after {} failures", self.failure_count);
+                    warn!(
+                        "Circuit breaker opening after {} failures",
+                        self.failure_count
+                    );
                     self.state = CircuitState::Open;
                 }
             }
@@ -312,7 +344,7 @@ where
             message: format!("{} blocked by circuit breaker", operation_name),
         });
     }
-    
+
     match operation().await {
         Ok(result) => {
             breaker.record_success();
@@ -330,7 +362,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_retry_policy_delay_calculation() {
         let policy = RetryPolicy {
@@ -340,31 +372,31 @@ mod tests {
             backoff_multiplier: 2.0,
             jitter: false,
         };
-        
+
         assert_eq!(policy.calculate_delay(1), Duration::from_millis(100));
         assert_eq!(policy.calculate_delay(2), Duration::from_millis(200));
         assert_eq!(policy.calculate_delay(3), Duration::from_millis(400));
         assert_eq!(policy.calculate_delay(4), Duration::from_millis(800));
         assert_eq!(policy.calculate_delay(5), Duration::from_millis(1000)); // Capped at max
     }
-    
+
     #[test]
     fn test_circuit_breaker_state_transitions() {
         let mut breaker = CircuitBreaker::new(2, 2, Duration::from_millis(100));
-        
+
         // Initially closed
         assert!(breaker.can_proceed());
-        
+
         // Record failures to open the circuit
         breaker.record_failure();
         assert!(breaker.can_proceed());
         breaker.record_failure();
         assert!(!breaker.can_proceed()); // Now open
-        
+
         // Wait for timeout
         std::thread::sleep(Duration::from_millis(150));
         assert!(breaker.can_proceed()); // Half-open
-        
+
         // Success in half-open state
         breaker.record_success();
         assert!(breaker.can_proceed());

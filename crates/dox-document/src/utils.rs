@@ -1,10 +1,10 @@
 //! Utility functions for document processing
 
 use crate::provider::{DocumentError, DocumentType};
-use std::io::{Read, Write, Seek};
+use std::io::{Read, Seek, Write};
 use std::path::Path;
-use zip::{ZipArchive, ZipWriter};
 use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter};
 
 /// Extract a ZIP archive to a temporary directory
 pub fn extract_zip(zip_data: &[u8]) -> Result<ZipArchive<std::io::Cursor<&[u8]>>, DocumentError> {
@@ -19,12 +19,12 @@ pub fn create_zip<W: Write + Seek>(
     files: impl Iterator<Item = (String, Vec<u8>)>,
 ) -> Result<(), DocumentError> {
     let mut zip_writer = ZipWriter::new(writer);
-    
+
     for (name, content) in files {
         zip_writer.start_file(name, SimpleFileOptions::default())?;
         zip_writer.write_all(&content)?;
     }
-    
+
     zip_writer.finish()?;
     Ok(())
 }
@@ -57,14 +57,14 @@ pub fn copy_zip_with_replacements<W: Write + Seek>(
     let reader = std::io::Cursor::new(source_data);
     let mut source_archive = ZipArchive::new(reader)?;
     let mut dest_writer = ZipWriter::new(destination);
-    
+
     // Copy all files from source, replacing when necessary
     for i in 0..source_archive.len() {
         let mut file = source_archive.by_index(i)?;
         let name = file.name().to_string();
-        
+
         dest_writer.start_file(&name, SimpleFileOptions::default())?;
-        
+
         if let Some(replacement_content) = replacements.get(&name) {
             // Use replacement content
             dest_writer.write_all(replacement_content)?;
@@ -75,29 +75,32 @@ pub fn copy_zip_with_replacements<W: Write + Seek>(
             dest_writer.write_all(&buffer)?;
         }
     }
-    
+
     dest_writer.finish()?;
     Ok(())
 }
 
 /// Find all text content in XML that can be replaced
-pub fn find_replaceable_text(xml_content: &[u8], text_tags: &[&str]) -> Result<Vec<String>, DocumentError> {
+pub fn find_replaceable_text(
+    xml_content: &[u8],
+    text_tags: &[&str],
+) -> Result<Vec<String>, DocumentError> {
     use quick_xml::events::Event;
     use quick_xml::Reader;
-    
+
     let mut reader = Reader::from_reader(std::io::Cursor::new(xml_content));
     let mut buf = Vec::new();
     let mut texts = Vec::new();
     let mut in_text = false;
     let mut current_tag = String::new();
-    
+
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => {
                 let tag_name = std::str::from_utf8(e.name().as_ref())
                     .unwrap_or("")
                     .to_string();
-                
+
                 if text_tags.contains(&tag_name.as_str()) {
                     in_text = true;
                     current_tag = tag_name;
@@ -107,7 +110,7 @@ pub fn find_replaceable_text(xml_content: &[u8], text_tags: &[&str]) -> Result<V
                 let tag_name = std::str::from_utf8(e.name().as_ref())
                     .unwrap_or("")
                     .to_string();
-                
+
                 if tag_name == current_tag {
                     in_text = false;
                     current_tag.clear();
@@ -125,7 +128,7 @@ pub fn find_replaceable_text(xml_content: &[u8], text_tags: &[&str]) -> Result<V
         }
         buf.clear();
     }
-    
+
     Ok(texts)
 }
 
@@ -138,7 +141,7 @@ pub fn replace_text_in_xml(
 ) -> Result<(Vec<u8>, usize), DocumentError> {
     use quick_xml::events::{BytesText, Event};
     use quick_xml::{Reader, Writer};
-    
+
     let mut reader = Reader::from_reader(std::io::Cursor::new(xml_content));
     let mut output = Vec::new();
     let mut writer = Writer::new(std::io::Cursor::new(&mut output));
@@ -146,14 +149,14 @@ pub fn replace_text_in_xml(
     let mut replacement_count = 0;
     let mut in_text = false;
     let mut current_tag = String::new();
-    
+
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => {
                 let tag_name = std::str::from_utf8(e.name().as_ref())
                     .unwrap_or("")
                     .to_string();
-                
+
                 if text_tags.contains(&tag_name.as_str()) {
                     in_text = true;
                     current_tag = tag_name;
@@ -164,7 +167,7 @@ pub fn replace_text_in_xml(
                 let tag_name = std::str::from_utf8(e.name().as_ref())
                     .unwrap_or("")
                     .to_string();
-                
+
                 if tag_name == current_tag {
                     in_text = false;
                     current_tag.clear();
@@ -185,28 +188,31 @@ pub fn replace_text_in_xml(
         }
         buf.clear();
     }
-    
+
     Ok((output, replacement_count))
 }
 
 /// Extract text content from XML
-pub fn extract_text_from_xml(xml_content: &[u8], text_tags: &[&str]) -> Result<String, DocumentError> {
+pub fn extract_text_from_xml(
+    xml_content: &[u8],
+    text_tags: &[&str],
+) -> Result<String, DocumentError> {
     use quick_xml::events::Event;
     use quick_xml::Reader;
-    
+
     let mut reader = Reader::from_reader(std::io::Cursor::new(xml_content));
     let mut buf = Vec::new();
     let mut text = String::new();
     let mut in_text = false;
     let mut current_tag = String::new();
-    
+
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => {
                 let tag_name = std::str::from_utf8(e.name().as_ref())
                     .unwrap_or("")
                     .to_string();
-                
+
                 if text_tags.contains(&tag_name.as_str()) {
                     in_text = true;
                     current_tag = tag_name;
@@ -216,7 +222,7 @@ pub fn extract_text_from_xml(xml_content: &[u8], text_tags: &[&str]) -> Result<S
                 let tag_name = std::str::from_utf8(e.name().as_ref())
                     .unwrap_or("")
                     .to_string();
-                
+
                 if tag_name == current_tag {
                     in_text = false;
                     current_tag.clear();
@@ -232,6 +238,6 @@ pub fn extract_text_from_xml(xml_content: &[u8], text_tags: &[&str]) -> Result<S
         }
         buf.clear();
     }
-    
+
     Ok(text.trim().to_string())
 }

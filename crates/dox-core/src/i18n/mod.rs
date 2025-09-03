@@ -15,7 +15,8 @@ pub fn set_language(lang: &str) {
 
 /// 현재 언어 가져오기
 pub fn get_language() -> String {
-    CURRENT_LANG.read()
+    CURRENT_LANG
+        .read()
         .map(|lang| lang.clone())
         .unwrap_or_else(|_| "ko".to_string())
 }

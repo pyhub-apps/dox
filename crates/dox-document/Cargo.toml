@@ -27,3 +27,4 @@ lopdf = "0.35"
 
 [dev-dependencies]
 tokio-test = "0.4"
+rstest = "0.22"

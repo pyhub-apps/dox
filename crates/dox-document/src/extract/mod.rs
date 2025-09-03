@@ -121,10 +121,10 @@ impl ExtractFormat {
 pub trait DocumentExtractor: Send + Sync {
     /// Extract content from a document
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError>;
-    
+
     /// Get supported document types
     fn supported_types(&self) -> &[DocumentType];
-    
+
     /// Check if this extractor supports the given file
     fn supports_file(&self, path: &Path) -> bool {
         if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
@@ -142,22 +142,22 @@ pub struct ExtractorFactory;
 impl ExtractorFactory {
     /// Create an extractor for the given file
     pub fn create_extractor(path: &Path) -> Result<Box<dyn DocumentExtractor>, DocumentError> {
-        let ext = path.extension()
-            .and_then(|s| s.to_str())
-            .ok_or_else(|| DocumentError::UnsupportedFormat { 
-                format: "none".to_string() 
-            })?;
-        
+        let ext = path.extension().and_then(|s| s.to_str()).ok_or_else(|| {
+            DocumentError::UnsupportedFormat {
+                format: "none".to_string(),
+            }
+        })?;
+
         match DocumentType::from_extension(ext) {
             Some(DocumentType::Word) => Ok(Box::new(extractors::WordExtractor::new())),
             Some(DocumentType::PowerPoint) => Ok(Box::new(extractors::PowerPointExtractor::new())),
             Some(DocumentType::Pdf) => Ok(Box::new(extractors::PdfExtractor::new())),
-            None => Err(DocumentError::UnsupportedFormat { 
-                format: ext.to_string() 
+            None => Err(DocumentError::UnsupportedFormat {
+                format: ext.to_string(),
             }),
         }
     }
-    
+
     /// Get all supported file extensions
     pub fn supported_extensions() -> Vec<&'static str> {
         vec!["docx", "pptx", "pdf"]
@@ -176,11 +176,11 @@ impl OutputFormatter {
             ExtractFormat::Markdown => Self::format_markdown(result),
         }
     }
-    
+
     /// Format as plain text
     fn format_text(result: &ExtractResult) -> Result<String, DocumentError> {
         let mut output = String::new();
-        
+
         for page in &result.pages {
             if !page.text.trim().is_empty() {
                 output.push_str(&page.text);
@@ -189,27 +189,26 @@ impl OutputFormatter {
                 }
             }
         }
-        
+
         Ok(output)
     }
-    
+
     /// Format as JSON
     fn format_json(result: &ExtractResult) -> Result<String, DocumentError> {
-        serde_json::to_string_pretty(result)
-            .map_err(|e| DocumentError::OperationFailed {
-                reason: format!("JSON serialization failed: {}", e),
-            })
+        serde_json::to_string_pretty(result).map_err(|e| DocumentError::OperationFailed {
+            reason: format!("JSON serialization failed: {}", e),
+        })
     }
-    
+
     /// Format as Markdown
     fn format_markdown(result: &ExtractResult) -> Result<String, DocumentError> {
         let mut output = String::new();
-        
+
         // Add document header if metadata available
         if let Some(ref title) = result.metadata.title {
             output.push_str(&format!("# {}\n\n", title));
         }
-        
+
         if result.metadata.author.is_some() || result.metadata.creator.is_some() {
             output.push_str("---\n");
             if let Some(ref author) = result.metadata.author {
@@ -220,13 +219,13 @@ impl OutputFormatter {
             }
             output.push_str("---\n\n");
         }
-        
+
         // Process each page
         for (page_idx, page) in result.pages.iter().enumerate() {
             if result.pages.len() > 1 {
                 output.push_str(&format!("## Page {}\n\n", page_idx + 1));
             }
-            
+
             // Process structured elements if available
             if !page.elements.is_empty() {
                 for element in &page.elements {
@@ -255,7 +254,7 @@ impl OutputFormatter {
                     output.push('\n');
                 }
             }
-            
+
             // Add tables
             for table in &page.tables {
                 output.push_str("\n");
@@ -264,7 +263,7 @@ impl OutputFormatter {
                     if let Some(header_row) = table.data.first() {
                         output.push_str(&format!("| {} |\n", header_row.join(" | ")));
                         output.push_str(&format!("|{}|\n", "---|".repeat(header_row.len())));
-                        
+
                         // Add table rows
                         for row in table.data.iter().skip(1) {
                             output.push_str(&format!("| {} |\n", row.join(" | ")));
@@ -273,10 +272,10 @@ impl OutputFormatter {
                 }
                 output.push_str("\n");
             }
-            
+
             output.push_str("\n");
         }
-        
+
         Ok(output)
     }
 }
