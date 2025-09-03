@@ -2,9 +2,9 @@
 name = "dox-document"
 version = "0.1.0"
 edition = "2021"
-authors = ["allieus <kika8919@gmail.com>"]
+authors = ["PyHub Korea <me@pyhub.kr>"]
 description = "Document processing crate for Word, PowerPoint, and PDF files"
-license = "MIT OR Apache-2.0"
+license = "Proprietary"
 repository = "https://github.com/pyhub-apps/dox"
 
 [dependencies]
