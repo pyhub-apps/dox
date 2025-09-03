@@ -92,16 +92,33 @@ replacements:
     new: "2024년"
   - old: "버전 1.0"
     new: "버전 2.0"
+  - old: "Hello"
+    new: "안녕하세요"
 EOF
 
-# 문서에서 치환
-dox replace -r rules.yml -p ./docs
+# 단일 파일 치환
+dox replace -r rules.yml -p document.docx
 
-# 미리보기 모드로 실행
+# 디렉토리 재귀적 치환
+dox replace -r rules.yml -p ./docs --recursive
+
+# 미리보기 모드 (실제 변경 없음)
 dox replace -r rules.yml -p ./docs --dry-run
+
+# 백업 파일 생성
+dox replace -r rules.yml -p ./docs --backup
+
+# 병렬 처리 (빠른 처리)
+dox replace -r rules.yml -p ./docs --concurrent --max-workers 8
+
+# 차이점 표시
+dox replace -r rules.yml -p ./docs --show-diff --dry-run
 
 # 특정 파일 제외
 dox replace -r rules.yml -p . --exclude "*.tmp" --exclude "backup/*"
+
+# 진행률 표시와 함께 실행
+dox replace -r rules.yml -p ./large-project --concurrent --verbose
 ```
 
 ### 문서 생성
@@ -255,7 +272,7 @@ dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
 - [x] 한글 메시지 지원 및 i18n 시스템
 - [x] HeadVer 버전 관리 시스템
 - [x] GitHub Actions 릴리즈 자동화
-- [ ] Replace 명령어 (진행 중)
+- [x] Replace 명령어
 - [ ] Create 명령어
 - [ ] Template 명령어
 - [ ] Generate 명령어 (AI 통합)

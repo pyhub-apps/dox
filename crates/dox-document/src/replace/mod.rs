@@ -72,6 +72,12 @@ pub struct ReplaceResults {
     pub skipped: usize,
 }
 
+/// Container for replacement rules loaded from YAML
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RulesFile {
+    pub replacements: Vec<Rule>,
+}
+
 /// Load replacement rules from a YAML file
 pub fn load_rules(path: &Path) -> Result<Vec<Rule>> {
     use std::fs;
@@ -81,7 +87,20 @@ pub fn load_rules(path: &Path) -> Result<Vec<Rule>> {
     }
 
     let content = fs::read_to_string(path)?;
-    let rules: Vec<Rule> = serde_yaml::from_str(&content)?;
+
+    // Try to parse as RulesFile first (with replacements key)
+    if let Ok(rules_file) = serde_yaml::from_str::<RulesFile>(&content) {
+        // Validate all rules
+        for (i, rule) in rules_file.replacements.iter().enumerate() {
+            rule.validate()
+                .map_err(|e| anyhow::anyhow!("Invalid rule at index {}: {}", i, e))?;
+        }
+        return Ok(rules_file.replacements);
+    }
+
+    // Fallback to direct Vec<Rule> for backward compatibility
+    let rules: Vec<Rule> = serde_yaml::from_str(&content)
+        .map_err(|e| anyhow::anyhow!("Failed to parse rules file: {}. Expected format:\n\nreplacements:\n  - old: \"text\"\n    new: \"replacement\"", e))?;
 
     // Validate all rules
     for (i, rule) in rules.iter().enumerate() {
