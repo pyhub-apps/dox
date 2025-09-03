@@ -41,9 +41,12 @@ async fn main() -> Result<()> {
 }
 
 fn get_log_config(cli: &Cli) -> LogConfig {
-    // TODO: Add verbose/quiet flags to CLI struct
-    // For now, check environment variables
-    if std::env::var("DOX_DEBUG").is_ok() {
+    // CLI 플래그 우선순위: CLI args > env vars > defaults
+    if cli.verbose {
+        LogConfig::verbose()
+    } else if cli.quiet {
+        LogConfig::quiet()
+    } else if std::env::var("DOX_DEBUG").is_ok() {
         LogConfig::verbose()
     } else if std::env::var("DOX_QUIET").is_ok() {
         LogConfig::quiet()
@@ -65,9 +68,9 @@ fn get_log_config(cli: &Cli) -> LogConfig {
     }
 }
 
-fn is_verbose(_cli: &Cli) -> bool {
-    // TODO: Add verbose flag to CLI struct
-    std::env::var("DOX_DEBUG").is_ok()
+fn is_verbose(cli: &Cli) -> bool {
+    cli.verbose
+        || std::env::var("DOX_DEBUG").is_ok()
         || std::env::var("RUST_LOG")
             .map(|v| v.contains("debug") || v.contains("trace"))
             .unwrap_or(false)

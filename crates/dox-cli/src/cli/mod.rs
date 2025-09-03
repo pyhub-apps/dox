@@ -21,11 +21,11 @@ pub struct Cli {
     pub config: Option<PathBuf>,
 
     /// 상세 출력 활성화
-    #[arg(short, long, global = true)]
+    #[arg(short, long, global = true, conflicts_with = "quiet")]
     pub verbose: bool,
 
     /// 오류 외 출력 억제
-    #[arg(short, long, global = true)]
+    #[arg(short, long, global = true, conflicts_with = "verbose")]
     pub quiet: bool,
 
     /// 색상 출력 비활성화
