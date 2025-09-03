@@ -80,6 +80,7 @@ pub enum DocumentType {
     PowerPoint,
     Pdf,
     Excel,
+    Text,
 }
 
 impl DocumentType {
@@ -90,6 +91,7 @@ impl DocumentType {
             DocumentType::PowerPoint => &["pptx"],
             DocumentType::Pdf => &["pdf"],
             DocumentType::Excel => &["xlsx"],
+            DocumentType::Text => &["txt"],
         }
     }
 
@@ -105,6 +107,7 @@ impl DocumentType {
             "pptx" => Some(DocumentType::PowerPoint),
             "pdf" => Some(DocumentType::Pdf),
             "xlsx" => Some(DocumentType::Excel),
+            "txt" => Some(DocumentType::Text),
             _ => None,
         }
     }
@@ -123,6 +126,7 @@ pub fn create_provider(path: &Path) -> Result<Box<dyn DocumentProvider>, Documen
         Some(DocumentType::PowerPoint) => Ok(Box::new(crate::PowerPointProvider::open(path)?)),
         Some(DocumentType::Pdf) => Ok(Box::new(crate::pdf::PdfProvider::open(path)?)),
         Some(DocumentType::Excel) => Ok(Box::new(crate::ExcelProvider::open(path)?)),
+        Some(DocumentType::Text) => Ok(Box::new(crate::text::TextProvider::open(path)?)),
         None => Err(DocumentError::UnsupportedFormat {
             format: ext.to_string(),
         }),

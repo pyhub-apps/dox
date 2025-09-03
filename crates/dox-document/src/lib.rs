@@ -13,6 +13,7 @@ pub mod powerpoint;
 pub mod provider;
 pub mod replace;
 pub mod template;
+pub mod text;
 pub mod utils;
 pub mod word;
 
@@ -21,7 +22,8 @@ pub use excel::ExcelProvider;
 pub use pdf::{PdfMetadata, PdfProvider};
 pub use powerpoint::PowerPointProvider;
 pub use provider::{create_provider, DocumentError, DocumentProvider, DocumentType};
-pub use utils::{create_zip, extract_zip, is_office_document};
+pub use text::TextProvider;
+pub use utils::{create_zip, extract_zip, is_office_document, validate_file_access, is_file_locked, is_office_temp_file};
 pub use word::WordProvider;
 
 // Re-export compatibility layer

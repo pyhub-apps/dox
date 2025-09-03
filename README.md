@@ -12,12 +12,15 @@
 
 ## ✨ 주요 기능
 
-### 🔄 대량 텍스트 치환
-- 여러 Word (.docx) 및 PowerPoint (.pptx) 파일에서 텍스트 일괄 치환
+### 🔄 스마트 텍스트 치환
+- 여러 Word (.docx), PowerPoint (.pptx), 텍스트 (.txt) 파일에서 텍스트 일괄 치환
+- **🤖 AI 스마트 교체**: 컨텍스트 인식으로 더 자연스러운 교체
 - 쉬운 관리를 위한 YAML 기반 규칙 설정
+- 단일 텍스트 교체 모드 지원 (`--find/--to`)
 - 패턴 제외 기능을 포함한 재귀적 디렉토리 처리
 - 향상된 성능을 위한 병렬 처리
 - 수정 전 자동 백업 생성
+- 파일 잠금 상태 자동 감지 및 보호
 
 ### 📝 문서 생성
 - Markdown 파일을 Word 또는 PowerPoint 문서로 변환
@@ -124,6 +127,79 @@ dox replace -r rules.yml -p . --exclude "*.tmp" --exclude "backup/*"
 
 # 진행률 표시와 함께 실행
 dox replace -r rules.yml -p ./large-project --concurrent --verbose
+```
+
+#### 🤖 AI 스마트 교체 기능 (신규!)
+
+AI가 문서의 컨텍스트를 분석하여 더 자연스럽고 정확한 교체를 제공합니다.
+
+```bash
+# API 키 설정 (OpenAI 또는 Claude)
+export OPENAI_API_KEY="your-openai-key"
+# 또는
+export ANTHROPIC_API_KEY="your-claude-key"
+
+# 단일 텍스트 AI 스마트 교체
+dox replace --find "{{이름}}" --to "홍길동" -p document.docx \
+  --ai-smart --ai-context "한국 전통 소설의 주인물"
+
+# YAML 규칙과 AI 결합 (각 규칙을 AI가 개별 분석)
+dox replace -r rules.yml -p presentation.pptx \
+  --ai-smart --ai-context "공식 사업 계획서" --ai-model "gpt-4"
+
+# Claude AI 사용
+dox replace --find "placeholder text" --to "enhanced content" \
+  -p report.docx --ai-smart --ai-model "claude-3-sonnet" \
+  --ai-context "기술 문서"
+```
+
+**AI 스마트 교체의 장점:**
+- **컨텍스트 인식**: 문서 주변 텍스트를 분석하여 적절한 교체
+- **자연스러운 표현**: 문법과 어조에 맞는 자연스러운 표현으로 변환
+- **스타일 일관성**: 문서의 전체적인 스타일과 톤 유지
+- **지능적 서식**: 따옴표, 대소문자, 구두점 등을 컨텍스트에 맞게 조정
+
+**예시 결과:**
+```
+# 일반 교체
+{{이름}} → 홍길동
+
+# AI 스마트 교체 (컨텍스트: "공식 문서")  
+{{이름}} → "홍길동"  (따옴표 자동 추가)
+
+# AI 스마트 교체 (컨텍스트: "기술 보고서")
+placeholder → "고급 기능"  (더 적절한 표현으로 변환)
+```
+
+#### 단일 텍스트 교체 모드
+
+YAML 파일 없이 간단한 교체도 가능합니다:
+
+```bash
+# 기본 단일 교체
+dox replace --find "old text" --to "new text" -p document.docx
+
+# AI와 함께 단일 교체
+dox replace --find "{{제목}}" --to "프로젝트 현황" -p report.docx \
+  --ai-smart --ai-context "월간 업무 보고서"
+
+# 여러 파일에 동일한 교체 적용
+dox replace --find "version 1.0" --to "version 2.0" -p ./docs \
+  --recursive --backup
+```
+
+#### 파일 잠금 보호 🔒
+
+Office 문서가 다른 프로그램에서 열려있을 때 안전하게 처리합니다:
+
+```bash
+# 자동 감지 및 경고
+$ dox replace -r rules.yml -p document.docx
+❌ 파일 접근 오류: 파일이 다른 프로그램에서 사용 중입니다. 먼저 파일을 닫아주세요
+
+# 임시 파일 자동 필터링  
+$ dox replace -r rules.yml -p ./
+# ~$Document.docx 같은 Office 임시 파일은 자동으로 제외됩니다
 ```
 
 ### 문서 생성
@@ -376,16 +452,16 @@ dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
 - [x] 한글 메시지 지원 및 i18n 시스템
 - [x] HeadVer 버전 관리 시스템
 - [x] GitHub Actions 릴리즈 자동화
-- [x] Replace 명령어
+- [x] Replace 명령어 (AI 스마트 교체, 파일 잠금 보호 포함)
 - [ ] Create 명령어
 - [ ] Template 명령어
-- [ ] Generate 명령어 (AI 통합)
+- [x] Generate 명령어 (OpenAI, Claude AI 통합, 한국어 최적화)
 - [x] Extract 명령어 ✨ (Excel 지원, 병렬 처리, 배치 기능)
 - [x] 설정 관리
 
 ## 📋 지원 파일 형식
 
-- **문서**: .docx (Word), .pptx (PowerPoint), .pdf, .xlsx (Excel)
+- **문서**: .docx (Word), .pptx (PowerPoint), .pdf, .xlsx (Excel), .txt (텍스트)
 - **입력**: .md (Markdown), .yaml/.yml (YAML), .json (JSON)
 - **출력**: text, json, markdown
 

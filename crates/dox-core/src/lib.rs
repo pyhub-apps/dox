@@ -5,6 +5,7 @@
 
 pub mod error;
 pub mod generate;
+pub mod replace;
 pub mod i18n;
 pub mod logging;
 pub mod spreadsheet;

@@ -1,7 +1,8 @@
 //! Utility functions for document processing
 
 use crate::provider::{DocumentError, DocumentType};
-use std::io::{Read, Seek, Write};
+use std::fs::File;
+use std::io::{ErrorKind, Read, Seek, Write};
 use std::path::Path;
 use zip::write::SimpleFileOptions;
 use zip::{ZipArchive, ZipWriter};
@@ -240,4 +241,64 @@ pub fn extract_text_from_xml(
     }
 
     Ok(text.trim().to_string())
+}
+
+/// Check if a file is locked by another process
+pub fn is_file_locked(path: &Path) -> bool {
+    // Try to open the file in exclusive write mode
+    match File::options()
+        .read(true)
+        .write(true)
+        .truncate(false)
+        .open(path) 
+    {
+        Ok(_) => false, // File is not locked
+        Err(e) => match e.kind() {
+            ErrorKind::PermissionDenied => true, // Likely locked
+            ErrorKind::AlreadyExists => true,    // Might be locked
+            _ => false, // Other errors, assume not locked
+        }
+    }
+}
+
+/// Check if a file appears to be a temporary Office file
+pub fn is_office_temp_file(path: &Path) -> bool {
+    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+        // Office temporary files usually start with ~$ or ~$DF
+        name.starts_with("~$") || name.starts_with("~WRL") || name.contains(".tmp")
+    } else {
+        false
+    }
+}
+
+/// Validate file accessibility before processing
+pub fn validate_file_access(path: &Path) -> Result<(), DocumentError> {
+    // Check if file exists
+    if !path.exists() {
+        return Err(DocumentError::DocumentNotFound { 
+            path: path.display().to_string() 
+        });
+    }
+
+    // Check if it's a temporary file
+    if is_office_temp_file(path) {
+        return Err(DocumentError::OperationFailed {
+            reason: format!(
+                "임시 파일입니다. 원본 파일을 지정해주세요: {}", 
+                path.display()
+            ),
+        });
+    }
+
+    // Check if file is locked
+    if is_file_locked(path) {
+        return Err(DocumentError::OperationFailed {
+            reason: format!(
+                "파일이 다른 프로그램에서 사용 중입니다. 먼저 파일을 닫아주세요: {}", 
+                path.display()
+            ),
+        });
+    }
+
+    Ok(())
 }

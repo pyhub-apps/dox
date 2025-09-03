@@ -2,6 +2,7 @@ use super::{ReplaceOptions, ReplaceResults, Rule};
 use crate::compat::Document;
 use anyhow::Result;
 use colored::*;
+use dox_core::replace::SmartReplacer;
 use dox_core::utils::ui;
 use std::path::Path;
 use tracing::{debug, error, info, warn};
@@ -9,12 +10,30 @@ use tracing::{debug, error, info, warn};
 /// Handles text replacement in documents
 pub struct Replacer {
     rules: Vec<Rule>,
+    smart_replacer: Option<SmartReplacer>,
 }
 
 impl Replacer {
     /// Create a new replacer with the given rules
     pub fn new(rules: Vec<Rule>) -> Self {
-        Replacer { rules }
+        Replacer { 
+            rules, 
+            smart_replacer: None,
+        }
+    }
+
+    /// Create a new replacer with AI-powered smart replacement
+    pub fn with_smart_replacement(
+        rules: Vec<Rule>, 
+        model: String, 
+        api_key: String,
+        context: Option<String>
+    ) -> Result<Self> {
+        let smart_replacer = SmartReplacer::new(model, api_key, context)?;
+        Ok(Replacer {
+            rules,
+            smart_replacer: Some(smart_replacer),
+        })
     }
 
     /// Process a file or directory with the replacement rules
@@ -164,14 +183,27 @@ impl Replacer {
         let mut applied_rules = Vec::new();
 
         for rule in &self.rules {
-            let count = doc.replace_text(&rule.old, &rule.new)?;
+            let replacement_text = if let Some(smart_replacer) = &self.smart_replacer {
+                // Use AI-enhanced replacement
+                match self.enhance_replacement_with_ai(smart_replacer, rule, &doc).await {
+                    Ok(enhanced_text) => enhanced_text,
+                    Err(e) => {
+                        warn!("AI enhancement failed, using original replacement: {}", e);
+                        rule.new.clone()
+                    }
+                }
+            } else {
+                rule.new.clone()
+            };
+
+            let count = doc.replace_text(&rule.old, &replacement_text)?;
             if count > 0 {
                 debug!(
                     "Replaced {} occurrences of '{}' with '{}'",
-                    count, rule.old, rule.new
+                    count, rule.old, replacement_text
                 );
                 total_replacements += count;
-                applied_rules.push((rule.clone(), count));
+                applied_rules.push((Rule::new(rule.old.clone(), replacement_text), count));
             }
         }
 
@@ -244,5 +276,34 @@ impl Replacer {
         info!("Created backup: {}", backup_path.display());
 
         Ok(())
+    }
+
+    /// Enhance replacement using AI analysis
+    async fn enhance_replacement_with_ai(
+        &self,
+        smart_replacer: &SmartReplacer,
+        rule: &Rule,
+        doc: &Document,
+    ) -> Result<String> {
+        // Get document context for AI analysis
+        let document_text = doc.get_text().unwrap_or_default();
+        let context_window = self.extract_context_around_text(&document_text, &rule.old, 200);
+        
+        // Use AI to suggest enhanced replacement
+        smart_replacer
+            .suggest_replacement(&rule.old, &rule.new, &context_window)
+            .await
+    }
+
+    /// Extract context around the target text for better AI analysis
+    fn extract_context_around_text(&self, full_text: &str, target: &str, window_size: usize) -> String {
+        if let Some(pos) = full_text.find(target) {
+            let start = pos.saturating_sub(window_size);
+            let end = (pos + target.len() + window_size).min(full_text.len());
+            full_text[start..end].to_string()
+        } else {
+            // If target not found, return a sample from the beginning
+            full_text.chars().take(window_size * 2).collect()
+        }
     }
 }

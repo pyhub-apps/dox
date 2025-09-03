@@ -2,7 +2,7 @@
 
 use super::{DocumentExtractor, ExtractMetadata, ExtractResult, ExtractedElement, ExtractedPage};
 use crate::provider::{DocumentError, DocumentProvider, DocumentType};
-use crate::{ExcelProvider, PdfProvider, PowerPointProvider, WordProvider};
+use crate::{ExcelProvider, PdfProvider, PowerPointProvider, TextProvider, WordProvider};
 use std::path::Path;
 use tracing::debug;
 
@@ -303,6 +303,7 @@ impl UniversalExtractor {
             Some("pptx") => Box::new(PowerPointExtractor::new()) as Box<dyn DocumentExtractor>,
             Some("pdf") => Box::new(PdfExtractor::new()) as Box<dyn DocumentExtractor>,
             Some("xlsx") => Box::new(ExcelExtractor::new()) as Box<dyn DocumentExtractor>,
+            Some("txt") => Box::new(TextExtractor::new()) as Box<dyn DocumentExtractor>,
             Some(ext) => {
                 return Err(DocumentError::UnsupportedFormat {
                     format: ext.to_string(),
@@ -344,6 +345,70 @@ impl Default for PdfExtractor {
 }
 
 impl Default for UniversalExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Text document extractor
+pub struct TextExtractor;
+
+impl TextExtractor {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl DocumentExtractor for TextExtractor {
+    fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
+        debug!("Extracting text from plain text file: {}", path.display());
+
+        let provider = TextProvider::open(path)?;
+        let text = provider.get_text()?;
+
+        // For text files, we treat the entire file as one page
+        let page = ExtractedPage {
+            number: 1,
+            text: text.clone(),
+            elements: vec![ExtractedElement {
+                element_type: "text".to_string(),
+                content: text,
+                level: None,
+                marker: None,
+            }],
+            tables: vec![], // Text files don't have tables
+        };
+
+        let metadata = ExtractMetadata {
+            title: path.file_stem().and_then(|s| s.to_str()).map(|s| s.to_string()),
+            author: None,
+            subject: None,
+            creator: None,
+            total_pages: 1,
+            created: None,
+            modified: None,
+        };
+
+        Ok(ExtractResult {
+            filename: path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown")
+                .to_string(),
+            format: "text".to_string(),
+            pages: vec![page],
+            metadata,
+            success: true,
+            error: None,
+        })
+    }
+
+    fn supported_types(&self) -> &[DocumentType] {
+        &[DocumentType::Text]
+    }
+}
+
+impl Default for TextExtractor {
     fn default() -> Self {
         Self::new()
     }

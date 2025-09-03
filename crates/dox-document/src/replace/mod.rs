@@ -155,7 +155,7 @@ pub fn find_document_files(
 /// Check if a file is a supported document type
 pub fn is_supported_document(path: &Path) -> bool {
     match path.extension().and_then(|s| s.to_str()) {
-        Some("docx") | Some("pptx") => true,
+        Some("docx") | Some("pptx") | Some("txt") => true,
         _ => false,
     }
 }
