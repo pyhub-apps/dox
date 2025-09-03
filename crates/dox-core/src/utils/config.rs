@@ -139,16 +139,20 @@ impl Config {
         let content = fs::read_to_string(path)?;
 
         // Try different formats
-        if path.extension().and_then(|s| s.to_str()) == Some("yaml")
+        let config: Config = if path.extension().and_then(|s| s.to_str()) == Some("yaml")
             || path.extension().and_then(|s| s.to_str()) == Some("yml")
         {
-            Ok(serde_yaml::from_str(&content)?)
+            serde_yaml::from_str(&content)?
         } else if path.extension().and_then(|s| s.to_str()) == Some("json") {
-            Ok(serde_json::from_str(&content)?)
+            serde_json::from_str(&content)?
         } else {
             // Default to TOML
-            Ok(toml::from_str(&content)?)
-        }
+            toml::from_str(&content)?
+        };
+
+        // Validate the loaded config
+        config.validate()?;
+        Ok(config)
     }
 
     /// Save configuration to file
@@ -218,6 +222,9 @@ impl Config {
 
     /// Set a configuration value by key
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
+        // Validate the field before setting
+        self.validate_field(key, value)?;
+
         let parts: Vec<&str> = key.split('.').collect();
 
         match parts.as_slice() {
@@ -273,8 +280,370 @@ impl Config {
         Ok(())
     }
 
+    /// Validate the configuration
+    pub fn validate(&self) -> Result<()> {
+        self.validate_global()?;
+        self.validate_replace()?;
+        self.validate_generate()?;
+        self.validate_openai()?;
+        self.validate_claude()?;
+        Ok(())
+    }
+
+    /// Validate a specific field
+    pub fn validate_field(&self, key: &str, value: &str) -> Result<()> {
+        let parts: Vec<&str> = key.split('.').collect();
+
+        match parts.as_slice() {
+            ["global", "verbose"] | ["global", "quiet"] | ["global", "no_color"] => {
+                value.parse::<bool>().map_err(|_| {
+                    anyhow::anyhow!("'{}' must be true or false, got '{}'", key, value)
+                })?;
+            }
+            ["global", "lang"] => {
+                if !["ko", "en"].contains(&value) {
+                    return Err(anyhow::anyhow!(
+                        "'{}' must be 'ko' or 'en', got '{}'",
+                        key,
+                        value
+                    ));
+                }
+            }
+            ["replace", "backup"] | ["replace", "recursive"] | ["replace", "concurrent"] => {
+                value.parse::<bool>().map_err(|_| {
+                    anyhow::anyhow!("'{}' must be true or false, got '{}'", key, value)
+                })?;
+            }
+            ["replace", "max_workers"] => {
+                let workers: u32 = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("'{}' must be a number, got '{}'", key, value))?;
+                if !(1..=32).contains(&workers) {
+                    return Err(anyhow::anyhow!(
+                        "'{}' must be between 1 and 32, got {}",
+                        key,
+                        workers
+                    ));
+                }
+            }
+            ["generate", "max_tokens"] => {
+                let tokens: u32 = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("'{}' must be a number, got '{}'", key, value))?;
+                if !(1..=10000).contains(&tokens) {
+                    return Err(anyhow::anyhow!(
+                        "'{}' must be between 1 and 10000, got {}",
+                        key,
+                        tokens
+                    ));
+                }
+            }
+            ["generate", "temperature"] => {
+                let temp: f32 = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("'{}' must be a number, got '{}'", key, value))?;
+                if !(0.0..=2.0).contains(&temp) {
+                    return Err(anyhow::anyhow!(
+                        "'{}' must be between 0.0 and 2.0, got {}",
+                        key,
+                        temp
+                    ));
+                }
+            }
+            ["generate", "model"] => {
+                let valid_models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"];
+                if !valid_models.contains(&value) {
+                    return Err(anyhow::anyhow!(
+                        "'{}' must be one of {:?}, got '{}'",
+                        key,
+                        valid_models,
+                        value
+                    ));
+                }
+            }
+            ["generate", "content_type"] => {
+                let valid_types = ["blog", "report", "summary", "email", "proposal"];
+                if !valid_types.contains(&value) {
+                    return Err(anyhow::anyhow!(
+                        "'{}' must be one of {:?}, got '{}'",
+                        key,
+                        valid_types,
+                        value
+                    ));
+                }
+            }
+            ["openai", "model"] | ["claude", "model"] => {
+                if value.is_empty() {
+                    return Err(anyhow::anyhow!("'{}' cannot be empty", key));
+                }
+            }
+            _ => {
+                // Custom values - basic validation
+                if key.contains("..") || key.starts_with('.') || key.ends_with('.') {
+                    return Err(anyhow::anyhow!("Invalid key format: '{}'", key));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validate_global(&self) -> Result<()> {
+        if self.global.verbose && self.global.quiet {
+            return Err(anyhow::anyhow!("verbose and quiet cannot both be true"));
+        }
+        if !["ko", "en"].contains(&self.global.lang.as_str()) {
+            return Err(anyhow::anyhow!(
+                "lang must be 'ko' or 'en', got '{}'",
+                self.global.lang
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_replace(&self) -> Result<()> {
+        if !(1..=32).contains(&self.replace.max_workers) {
+            return Err(anyhow::anyhow!(
+                "max_workers must be between 1 and 32, got {}",
+                self.replace.max_workers
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_generate(&self) -> Result<()> {
+        if !(1..=10000).contains(&self.generate.max_tokens) {
+            return Err(anyhow::anyhow!(
+                "max_tokens must be between 1 and 10000, got {}",
+                self.generate.max_tokens
+            ));
+        }
+        if !(0.0..=2.0).contains(&self.generate.temperature) {
+            return Err(anyhow::anyhow!(
+                "temperature must be between 0.0 and 2.0, got {}",
+                self.generate.temperature
+            ));
+        }
+        let valid_models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"];
+        if !valid_models.contains(&self.generate.model.as_str()) {
+            return Err(anyhow::anyhow!(
+                "model must be one of {:?}, got '{}'",
+                valid_models,
+                self.generate.model
+            ));
+        }
+        let valid_types = ["blog", "report", "summary", "email", "proposal"];
+        if !valid_types.contains(&self.generate.content_type.as_str()) {
+            return Err(anyhow::anyhow!(
+                "content_type must be one of {:?}, got '{}'",
+                valid_types,
+                self.generate.content_type
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_openai(&self) -> Result<()> {
+        if let Some(model) = &self.openai.model {
+            if model.is_empty() {
+                return Err(anyhow::anyhow!("openai.model cannot be empty"));
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_claude(&self) -> Result<()> {
+        if let Some(model) = &self.claude.model {
+            if model.is_empty() {
+                return Err(anyhow::anyhow!("claude.model cannot be empty"));
+            }
+        }
+        Ok(())
+    }
+
     /// Display the configuration in a readable format
     pub fn display(&self) -> String {
         toml::to_string_pretty(self).unwrap_or_else(|_| "Failed to display config".to_string())
+    }
+
+    /// Display the configuration with colors and better formatting
+    pub fn display_colored(&self) -> String {
+        use colored::*;
+
+        let mut output = String::new();
+
+        // Global settings
+        output.push_str(&format!("{}\n", "[global]".blue().bold()));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "verbose".green(),
+            format!("{}", self.global.verbose).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "quiet".green(),
+            format!("{}", self.global.quiet).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "lang".green(),
+            format!("\"{}\"", self.global.lang).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "no_color".green(),
+            format!("{}", self.global.no_color).yellow()
+        ));
+        output.push('\n');
+
+        // Replace settings
+        output.push_str(&format!("{}\n", "[replace]".blue().bold()));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "backup".green(),
+            format!("{}", self.replace.backup).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "recursive".green(),
+            format!("{}", self.replace.recursive).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "concurrent".green(),
+            format!("{}", self.replace.concurrent).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "max_workers".green(),
+            format!("{}", self.replace.max_workers).yellow()
+        ));
+        output.push('\n');
+
+        // Generate settings
+        output.push_str(&format!("{}\n", "[generate]".blue().bold()));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "model".green(),
+            format!("\"{}\"", self.generate.model).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "max_tokens".green(),
+            format!("{}", self.generate.max_tokens).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "temperature".green(),
+            format!("{}", self.generate.temperature).yellow()
+        ));
+        output.push_str(&format!(
+            "  {} = {}\n",
+            "content_type".green(),
+            format!("\"{}\"", self.generate.content_type).yellow()
+        ));
+        output.push('\n');
+
+        // OpenAI settings
+        output.push_str(&format!("{}\n", "[openai]".blue().bold()));
+        if let Some(ref api_key) = self.openai.api_key {
+            let masked_key = if api_key.len() > 8 {
+                format!("{}***", &api_key[..8])
+            } else {
+                "***".to_string()
+            };
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "api_key".green(),
+                format!("\"{}\"", masked_key).yellow()
+            ));
+        } else {
+            output.push_str(&format!("  {} = {}\n", "api_key".green(), "null".red()));
+        }
+
+        if let Some(ref model) = self.openai.model {
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "model".green(),
+                format!("\"{}\"", model).yellow()
+            ));
+        } else {
+            output.push_str(&format!("  {} = {}\n", "model".green(), "null".red()));
+        }
+
+        if let Some(max_tokens) = self.openai.max_tokens {
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "max_tokens".green(),
+                format!("{}", max_tokens).yellow()
+            ));
+        }
+
+        if let Some(temperature) = self.openai.temperature {
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "temperature".green(),
+                format!("{}", temperature).yellow()
+            ));
+        }
+        output.push('\n');
+
+        // Claude settings
+        output.push_str(&format!("{}\n", "[claude]".blue().bold()));
+        if let Some(ref api_key) = self.claude.api_key {
+            let masked_key = if api_key.len() > 8 {
+                format!("{}***", &api_key[..8])
+            } else {
+                "***".to_string()
+            };
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "api_key".green(),
+                format!("\"{}\"", masked_key).yellow()
+            ));
+        } else {
+            output.push_str(&format!("  {} = {}\n", "api_key".green(), "null".red()));
+        }
+
+        if let Some(ref model) = self.claude.model {
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "model".green(),
+                format!("\"{}\"", model).yellow()
+            ));
+        } else {
+            output.push_str(&format!("  {} = {}\n", "model".green(), "null".red()));
+        }
+
+        if let Some(max_tokens) = self.claude.max_tokens {
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "max_tokens".green(),
+                format!("{}", max_tokens).yellow()
+            ));
+        }
+
+        if let Some(temperature) = self.claude.temperature {
+            output.push_str(&format!(
+                "  {} = {}\n",
+                "temperature".green(),
+                format!("{}", temperature).yellow()
+            ));
+        }
+
+        // Custom settings
+        if !self.custom.is_empty() {
+            output.push('\n');
+            output.push_str(&format!("{}\n", "[custom]".blue().bold()));
+            for (key, value) in &self.custom {
+                let value_str = match value {
+                    serde_json::Value::String(s) => format!("\"{}\"", s),
+                    v => v.to_string(),
+                };
+                output.push_str(&format!("  {} = {}\n", key.green(), value_str.yellow()));
+            }
+        }
+
+        output
     }
 }

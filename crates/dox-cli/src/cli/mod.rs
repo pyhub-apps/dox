@@ -75,7 +75,7 @@ impl Cli {
             Commands::Template(args) => template::execute(args).await,
             Commands::Generate(args) => generate::execute(args).await,
             Commands::Extract(args) => extract::execute(args).await,
-            Commands::Config(args) => config::execute(args).await,
+            Commands::Config(args) => config::execute(args, self.config.as_deref()).await,
         }
     }
 }
