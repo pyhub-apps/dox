@@ -146,15 +146,18 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Update Cargo.toml version
+        shell: bash
         run: |
           VERSION="${{ needs.version.outputs.version }}"
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            powershell -Command "(Get-Content crates/dox-cli/Cargo.toml) -replace '^version = .*', 'version = \"$VERSION\"' | Set-Content crates/dox-cli/Cargo.toml"
+            sed -i "s/^version = .*/version = \"${VERSION}\"/" crates/dox-cli/Cargo.toml
           else
             sed -i.bak "s/^version = .*/version = \"${VERSION}\"/" crates/dox-cli/Cargo.toml
           fi
 
       - name: Build binary
+        shell: bash
+        timeout-minutes: 30
         run: |
           FEATURES="${{ matrix.features || '--features keyring,pdf' }}"
           case "${{ matrix.target }}" in
