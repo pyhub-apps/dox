@@ -1,5 +1,16 @@
 //! Excel spreadsheet provider implementation using calamine and rust_xlsxwriter.
 
+pub mod chart;
+pub mod formatting;
+pub mod formula;
+pub mod macro_handling;
+pub mod pivot;
+pub mod streaming;
+pub mod validation;
+
+#[cfg(test)]
+pub mod tests;
+
 use anyhow::{anyhow, Result};
 use calamine::{open_workbook, Reader, Xlsx};
 use dox_core::{
@@ -12,6 +23,25 @@ use std::future::Future;
 use std::path::PathBuf;
 use std::pin::Pin;
 use tracing::{debug, info, warn};
+
+pub use chart::{
+    ChartManager, ChartPosition, ChartSeries, ChartStyle, ExcelChartBuilder, ExcelChartType,
+};
+pub use formatting::{BasicCellFormat, BasicFormattingManager, FormatTemplate, StyleTheme};
+pub use formula::{CellReference, Formula, FormulaContext, FormulaResult};
+pub use macro_handling::{
+    MacroAnalysisResult, MacroAnalyzer, MacroConfig, MacroHandlingOption, MacroSecurityLevel,
+    SecurityRisk, VbaModule, VbaProject,
+};
+pub use pivot::{
+    DataField, PivotField, PivotLocation, PivotTable, PivotTableManager, PivotTableMetadata,
+};
+pub use streaming::{
+    DataChunk, StreamProgress, StreamingConfig, StreamingExcelReader, StreamingProcessor,
+};
+pub use validation::{
+    SimpleValidationConfig, SimpleValidationManager, SimpleValidationType, ValidationTemplate,
+};
 
 /// Excel provider for reading and writing XLSX files
 pub struct ExcelProvider {
@@ -50,11 +80,22 @@ impl ExcelProvider {
     }
 
     /// Converts calamine data to our Cell type
-    fn convert_calamine_cell(data: &calamine::Data) -> Cell {
+    fn convert_calamine_cell(data: &calamine::Data, evaluate_formulas: bool) -> Cell {
         let value = match data {
             calamine::Data::Int(i) => i.to_string(),
             calamine::Data::Float(f) => f.to_string(),
-            calamine::Data::String(s) => s.clone(),
+            calamine::Data::String(s) => {
+                // Check if it's a formula (starts with =)
+                if s.starts_with('=') && !evaluate_formulas {
+                    // Return formula as-is
+                    s.clone()
+                } else if s.starts_with('=') && evaluate_formulas {
+                    // TODO: Evaluate formula - for now, return the formula
+                    s.clone()
+                } else {
+                    s.clone()
+                }
+            }
             calamine::Data::Bool(b) => b.to_string(),
             calamine::Data::DateTime(dt) => dt.to_string(),
             calamine::Data::DateTimeIso(s) => s.clone(),
@@ -63,6 +104,232 @@ impl ExcelProvider {
             calamine::Data::Empty => String::new(),
         };
         Cell::new(value)
+    }
+
+    /// Evaluate formulas in the provided data using context from the workbook
+    async fn evaluate_formulas_in_data(
+        &self,
+        data: &mut Vec<Vec<Cell>>,
+        _workbook: &mut Xlsx<std::io::BufReader<std::fs::File>>,
+    ) -> Result<()> {
+        // Create formula context from the workbook data
+        let mut formula_context = FormulaContext::new();
+
+        // Populate context with cell values
+        for (row_idx, row) in data.iter().enumerate() {
+            for (col_idx, cell) in row.iter().enumerate() {
+                if let Ok(value) = cell.value.parse::<f64>() {
+                    let cell_ref = CellReference::new_single(None, col_idx as u32, row_idx as u32);
+                    formula_context.set_cell_value(cell_ref, value);
+                } else if !cell.value.is_empty() && !cell.value.starts_with('=') {
+                    let cell_ref = CellReference::new_single(None, col_idx as u32, row_idx as u32);
+                    formula_context.set_cell_text(cell_ref, cell.value.clone());
+                }
+            }
+        }
+
+        // Evaluate formulas
+        for (row_idx, row) in data.iter_mut().enumerate() {
+            for (col_idx, cell) in row.iter_mut().enumerate() {
+                if cell.value.starts_with('=') {
+                    match Formula::parse(&cell.value) {
+                        Ok(formula) => match formula.evaluate(&formula_context) {
+                            Ok(result) => {
+                                cell.value = result.to_string();
+                            }
+                            Err(e) => {
+                                warn!(
+                                    "Formula evaluation error at {}{}): {}",
+                                    Formula::index_to_column(col_idx as u32).unwrap_or_default(),
+                                    row_idx + 1,
+                                    e
+                                );
+                                cell.value = format!("#ERROR: {}", e);
+                            }
+                        },
+                        Err(e) => {
+                            warn!("Formula parsing error: {}", e);
+                            cell.value = format!("#ERROR: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Create a chart in an Excel workbook
+    pub async fn create_chart(
+        &self,
+        sheet_id: &SheetId,
+        chart_type: ExcelChartType,
+        title: &str,
+        data_ranges: Vec<(&str, RangeRef)>,
+        category_range: Option<RangeRef>,
+        position: Option<ChartPosition>,
+    ) -> Result<()> {
+        let path = self.resolve_path(sheet_id);
+
+        debug!("Creating chart in Excel file: {:?}", path);
+
+        // For chart creation, we need to create a new workbook or modify existing one
+        // Since rust_xlsxwriter is write-only, we'll create a new workbook
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet().set_name("ChartData")?;
+
+        // Create chart manager and add chart
+        let mut chart_manager = ChartManager::new(worksheet);
+
+        match chart_type {
+            ExcelChartType::Column
+            | ExcelChartType::ColumnStacked
+            | ExcelChartType::ColumnStacked100 => {
+                chart_manager.create_column_chart(title, data_ranges, category_range, position)?;
+            }
+            ExcelChartType::Line | ExcelChartType::LineMarkers => {
+                chart_manager.create_line_chart(title, data_ranges, category_range, position)?;
+            }
+            ExcelChartType::Pie => {
+                if let Some((_, data_range)) = data_ranges.first() {
+                    chart_manager.create_pie_chart(
+                        title,
+                        data_range.clone(),
+                        category_range,
+                        position,
+                    )?;
+                }
+            }
+            _ => {
+                warn!(
+                    "Chart type {:?} not yet supported in create_chart method",
+                    chart_type
+                );
+                return Err(anyhow!("Unsupported chart type: {:?}", chart_type));
+            }
+        }
+
+        // Save the workbook
+        workbook
+            .save(&path)
+            .map_err(|e| anyhow!("Failed to save Excel file with chart: {}", e))?;
+
+        info!("Chart '{}' created successfully in Excel file", title);
+        Ok(())
+    }
+
+    /// Add a chart to existing data in a workbook
+    pub async fn add_chart_to_existing_data(
+        &self,
+        sheet_id: &SheetId,
+        _sheet_name: &str,
+        _chart_builder: ExcelChartBuilder,
+    ) -> Result<()> {
+        let path = self.resolve_path(sheet_id);
+
+        debug!("Adding chart to existing Excel file: {:?}", path);
+
+        // This is a limitation: rust_xlsxwriter cannot modify existing files
+        // We would need to:
+        // 1. Read the existing file with calamine
+        // 2. Extract all data
+        // 3. Create a new workbook with rust_xlsxwriter
+        // 4. Add the data and charts
+        // 5. Save as new file
+
+        warn!(
+            "Adding charts to existing files requires reading and recreating the entire workbook"
+        );
+        Err(anyhow!(
+            "Chart addition to existing files not yet implemented - limitation of rust_xlsxwriter"
+        ))
+    }
+}
+
+/// Extended Excel provider with advanced functionality
+impl ExcelProvider {
+    /// Create a comprehensive Excel report with data and charts
+    pub async fn create_excel_report(
+        &self,
+        sheet_id: &SheetId,
+        data: Vec<Vec<Cell>>,
+        charts: Vec<(ExcelChartType, String, Vec<(&str, RangeRef)>)>,
+    ) -> Result<()> {
+        let path = self.resolve_path(sheet_id);
+
+        debug!("Creating Excel report: {:?}", path);
+
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet().set_name("Report")?;
+
+        // First, write the data
+        for (row_idx, row_data) in data.iter().enumerate() {
+            for (col_idx, cell) in row_data.iter().enumerate() {
+                let row = row_idx as u32;
+                let col = col_idx as u16;
+
+                if cell.value.starts_with('=') {
+                    worksheet
+                        .write_formula(row, col, cell.value.as_str())
+                        .map_err(|e| anyhow!("Failed to write formula: {}", e))?;
+                } else if let Ok(number) = cell.value.parse::<f64>() {
+                    worksheet
+                        .write_number(row, col, number)
+                        .map_err(|e| anyhow!("Failed to write number: {}", e))?;
+                } else {
+                    worksheet
+                        .write_string(row, col, &cell.value)
+                        .map_err(|e| anyhow!("Failed to write string: {}", e))?;
+                }
+            }
+        }
+
+        // Then, add charts
+        let mut chart_manager = ChartManager::new(worksheet);
+        let mut chart_row = data.len() as u32 + 2; // Start charts below data
+        let chart_count = charts.len();
+
+        for (chart_type, title, data_ranges) in charts {
+            let position = ChartPosition {
+                col: 0,
+                row: chart_row,
+                ..ChartPosition::default()
+            };
+
+            match chart_type {
+                ExcelChartType::Column => {
+                    chart_manager.create_column_chart(&title, data_ranges, None, Some(position))?;
+                }
+                ExcelChartType::Line => {
+                    chart_manager.create_line_chart(&title, data_ranges, None, Some(position))?;
+                }
+                ExcelChartType::Pie => {
+                    if let Some((_, data_range)) = data_ranges.first() {
+                        chart_manager.create_pie_chart(
+                            &title,
+                            data_range.clone(),
+                            None,
+                            Some(position),
+                        )?;
+                    }
+                }
+                _ => {
+                    warn!(
+                        "Chart type {:?} not supported in report generation",
+                        chart_type
+                    );
+                }
+            }
+
+            chart_row += 20; // Space charts vertically
+        }
+
+        workbook
+            .save(&path)
+            .map_err(|e| anyhow!("Failed to save Excel report: {}", e))?;
+
+        info!("Excel report created with {} charts", chart_count);
+        Ok(())
     }
 }
 
@@ -106,11 +373,26 @@ impl SpreadsheetProvider for ExcelProvider {
                 .worksheet_range(&sheet_name)
                 .map_err(|e| anyhow!("Failed to read sheet '{}': {}", sheet_name, e))?;
 
+            let evaluate_formulas = _options.evaluate_formulas;
+
             // Convert to our Cell type
             let mut result = Vec::new();
             for row in range.rows() {
-                let cells: Vec<Cell> = row.iter().map(Self::convert_calamine_cell).collect();
+                let cells: Vec<Cell> = row
+                    .iter()
+                    .map(|data| Self::convert_calamine_cell(data, evaluate_formulas))
+                    .collect();
                 result.push(cells);
+            }
+
+            // Evaluate formulas if requested
+            if evaluate_formulas {
+                if let Err(e) = self
+                    .evaluate_formulas_in_data(&mut result, &mut workbook)
+                    .await
+                {
+                    warn!("Formula evaluation failed: {}", e);
+                }
             }
 
             info!("Read {} rows from Excel file", result.len());
@@ -140,9 +422,31 @@ impl SpreadsheetProvider for ExcelProvider {
             // Write the data
             for (row_idx, row_data) in data.iter().enumerate() {
                 for (col_idx, cell) in row_data.iter().enumerate() {
-                    worksheet
-                        .write_string(row_idx as u32, col_idx as u16, &cell.value)
-                        .map_err(|e| anyhow!("Failed to write cell: {}", e))?;
+                    let row = row_idx as u32;
+                    let col = col_idx as u16;
+
+                    if cell.value.starts_with('=') {
+                        // Write as formula
+                        worksheet
+                            .write_formula(row, col, cell.value.as_str())
+                            .map_err(|e| anyhow!("Failed to write formula: {}", e))?;
+                    } else if let Ok(number) = cell.value.parse::<f64>() {
+                        // Write as number
+                        worksheet
+                            .write_number(row, col, number)
+                            .map_err(|e| anyhow!("Failed to write number: {}", e))?;
+                    } else if cell.value.parse::<bool>().is_ok() {
+                        // Write as boolean
+                        let bool_val = cell.value.to_lowercase() == "true";
+                        worksheet
+                            .write_boolean(row, col, bool_val)
+                            .map_err(|e| anyhow!("Failed to write boolean: {}", e))?;
+                    } else {
+                        // Write as string
+                        worksheet
+                            .write_string(row, col, &cell.value)
+                            .map_err(|e| anyhow!("Failed to write string: {}", e))?;
+                    }
                 }
             }
 
@@ -321,33 +625,3 @@ impl SpreadsheetProvider for ExcelProvider {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_excel_provider_creation() {
-        let provider = ExcelProvider::new();
-        assert!(provider.base_dir.is_none());
-
-        let provider = ExcelProvider::with_base_dir("/tmp");
-        assert_eq!(provider.base_dir, Some(PathBuf::from("/tmp")));
-    }
-
-    #[test]
-    fn test_path_resolution() {
-        let provider = ExcelProvider::new();
-        let sheet_id = SheetId("/absolute/path.xlsx".to_string());
-        assert_eq!(
-            provider.resolve_path(&sheet_id),
-            PathBuf::from("/absolute/path.xlsx")
-        );
-
-        let provider = ExcelProvider::with_base_dir("/base");
-        let sheet_id = SheetId("relative/path.xlsx".to_string());
-        assert_eq!(
-            provider.resolve_path(&sheet_id),
-            PathBuf::from("/base/relative/path.xlsx")
-        );
-    }
-}

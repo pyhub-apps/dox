@@ -14,3 +14,14 @@ calamine = "0.26"
 rust_xlsxwriter = "0.78"
 anyhow = "1.0"
 tracing = "0.1"
+evalexpr = "11.3"
+rayon = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.10"
+memmap2 = "0.9"
+tokio = { version = "1.0", features = ["full"] }
+num_cpus = "1.16"
+
+[dev-dependencies]
+tempfile = "3.8"
