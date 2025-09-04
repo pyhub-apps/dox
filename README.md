@@ -39,11 +39,13 @@
 - 복잡한 데이터 구조 지원
 
 ### 📊 텍스트 추출 🆕
-- **다중 형식 지원**: Word, PowerPoint, PDF, Excel 문서에서 텍스트 추출
+- **다중 형식 지원**: Word, PowerPoint, PDF, Excel, 텍스트 문서에서 추출
+- **지능형 추출**: 슬라이드별, 시트별, 페이지별 개별 처리
+- **향상된 메타데이터**: 제목, 작성자, 생성일/수정일 등 풍부한 정보
 - **배치 처리**: 디렉토리 전체 문서를 한 번에 처리
 - **병렬 처리**: 다중 파일을 동시에 처리하여 속도 향상
 - **다양한 출력 형식**: 텍스트, JSON, Markdown 지원
-- **메타데이터 추출**: 문서 정보 포함 옵션
+- **한글 지원**: 파일명과 내용 모두 완벽한 UTF-8 인코딩
 - **고급 필터링**: glob 패턴으로 파일 제외 기능
 
 ## 🌏 한글 지원
@@ -336,29 +338,37 @@ dox generate -p "2025년 시장 분석" -t report --model gpt-4
 ### 📊 텍스트 추출 (신규 업데이트!) 
 
 #### 지원 파일 형식
-- **Word** (.docx), **PowerPoint** (.pptx), **PDF** (.pdf)
-- **Excel** (.xlsx) ← 새로 추가! 🆕
+- **Word** (.docx) - 향상된 메타데이터 추출
+- **PowerPoint** (.pptx) - 슬라이드별 개별 추출
+- **PDF** (.pdf) - 개선된 날짜 정보 추출  
+- **Excel** (.xlsx) - 시트별 개별 추출
+- **텍스트** (.txt) - UTF-8 한글 지원 🆕
 
 #### 기본 사용법
 
 ```bash
 # 단일 파일에서 텍스트 추출
-dox extract -i report.docx
-dox extract -i spreadsheet.xlsx  # Excel 지원!
-dox extract -i presentation.pptx
-dox extract -i document.pdf
+dox extract -i report.docx          # Word 문서 (메타데이터 자동 추출)
+dox extract -i spreadsheet.xlsx     # Excel (시트별 추출)
+dox extract -i presentation.pptx    # PowerPoint (슬라이드별 추출)
+dox extract -i document.pdf         # PDF (페이지별 + 날짜 정보)
+dox extract -i 한글문서.txt          # 텍스트 파일 (한글 지원)
 
 # 출력 형식 선택
 dox extract -i report.docx --format text      # 일반 텍스트 (기본값)
 dox extract -i report.docx --format json      # JSON 형식 
 dox extract -i report.docx --format markdown  # 마크다운 형식
 
-# 메타데이터 포함
+# 메타데이터 포함 (제목, 작성자, 생성일/수정일 등)
 dox extract -i document.pdf --format json --with-metadata
+dox extract -i presentation.pptx --format json --with-metadata
 
 # 파일로 저장
 dox extract -i presentation.pptx -o output.txt
 dox extract -i spreadsheet.xlsx -o data.json --format json
+
+# 한글 파일명과 내용 처리
+dox extract -i "프로젝트 보고서.docx" --format json
 ```
 
 #### 디렉토리 배치 처리 🚀
@@ -559,7 +569,7 @@ dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
 - [x] Create 명령어 ✨ (Markdown을 Word/PowerPoint로 변환, Office Open XML 지원)
 - [ ] Template 명령어
 - [x] Generate 명령어 (OpenAI, Claude AI 통합, 한국어 최적화)
-- [x] Extract 명령어 ✨ (Excel 지원, 병렬 처리, 배치 기능)
+- [x] Extract 명령어 ✨ (향상된 메타데이터, 슬라이드/시트별 추출, 한글 지원)
 - [x] 설정 관리
 
 ## 📋 지원 파일 형식

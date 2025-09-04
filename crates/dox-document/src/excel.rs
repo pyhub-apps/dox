@@ -6,6 +6,19 @@ use calamine::{open_workbook, Reader, Xlsx};
 use std::path::Path;
 use tracing::debug;
 
+/// Excel document metadata
+#[derive(Debug, Default, Clone)]
+pub struct ExcelMetadata {
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub subject: Option<String>,
+    pub creator: Option<String>,
+    pub total_sheets: usize,
+    pub sheet_names: Vec<String>,
+    pub created: Option<String>,
+    pub modified: Option<String>,
+}
+
 /// Excel document provider for XLSX files
 #[derive(Debug)]
 pub struct ExcelProvider {
@@ -101,6 +114,104 @@ impl ExcelProvider {
         }
 
         Ok(full_text)
+    }
+
+    /// Extract metadata from the Excel workbook
+    pub fn get_metadata(&self) -> Result<ExcelMetadata, DocumentError> {
+        debug!(
+            "Extracting metadata from Excel document: {}",
+            self.path.display()
+        );
+
+        let workbook: Xlsx<_> =
+            open_workbook(&self.path).map_err(|e| DocumentError::FileReadError {
+                path: self.path.display().to_string(),
+                source: anyhow::anyhow!("Failed to open Excel file: {}", e),
+            })?;
+
+        let sheet_names = workbook.sheet_names();
+
+        let metadata = ExcelMetadata {
+            title: self
+                .path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .map(|s| s.to_string()),
+            author: None, // TODO: Extract from document properties if available
+            subject: None,
+            creator: None, // TODO: Extract application name
+            total_sheets: sheet_names.len(),
+            sheet_names: sheet_names.clone(),
+            created: None,  // TODO: Extract from file system or document properties
+            modified: None, // TODO: Extract from file system or document properties
+        };
+
+        Ok(metadata)
+    }
+
+    /// Get text from a specific sheet
+    pub fn get_sheet_text(&self, sheet_name: &str) -> Result<String, DocumentError> {
+        debug!(
+            "Extracting text from sheet '{}' in Excel document",
+            sheet_name
+        );
+
+        let mut workbook: Xlsx<_> =
+            open_workbook(&self.path).map_err(|e| DocumentError::FileReadError {
+                path: self.path.display().to_string(),
+                source: anyhow::anyhow!("Failed to open Excel file: {}", e),
+            })?;
+
+        let mut sheet_text = String::new();
+
+        match workbook.worksheet_range(sheet_name) {
+            Ok(range) => {
+                for row in range.rows() {
+                    let mut row_text = Vec::new();
+
+                    for cell in row {
+                        let cell_value = match cell {
+                            calamine::Data::Int(i) => i.to_string(),
+                            calamine::Data::Float(f) => f.to_string(),
+                            calamine::Data::String(s) => s.clone(),
+                            calamine::Data::Bool(b) => b.to_string(),
+                            calamine::Data::DateTime(dt) => dt.to_string(),
+                            calamine::Data::DateTimeIso(s) => s.clone(),
+                            calamine::Data::DurationIso(s) => s.clone(),
+                            calamine::Data::Error(e) => format!("#ERR: {:?}", e),
+                            calamine::Data::Empty => String::new(),
+                        };
+
+                        if !cell_value.is_empty() {
+                            row_text.push(cell_value);
+                        }
+                    }
+
+                    if !row_text.is_empty() {
+                        sheet_text.push_str(&row_text.join("\t"));
+                        sheet_text.push('\n');
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(DocumentError::InvalidStructure {
+                    reason: format!("Failed to read sheet '{}': {}", sheet_name, e),
+                });
+            }
+        }
+
+        Ok(sheet_text)
+    }
+
+    /// Get the sheet names
+    pub fn get_sheet_names(&self) -> Result<Vec<String>, DocumentError> {
+        let workbook: Xlsx<_> =
+            open_workbook(&self.path).map_err(|e| DocumentError::FileReadError {
+                path: self.path.display().to_string(),
+                source: anyhow::anyhow!("Failed to open Excel file: {}", e),
+            })?;
+
+        Ok(workbook.sheet_names())
     }
 }
 

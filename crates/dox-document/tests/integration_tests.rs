@@ -229,8 +229,8 @@ fn test_error_handling() {
         DocumentError::DocumentNotFound { .. }
     ));
 
-    // Test unsupported file type
-    let temp_file = NamedTempFile::with_suffix(".txt").unwrap();
+    // Test unsupported file type (using .xyz extension)
+    let temp_file = NamedTempFile::with_suffix(".xyz").unwrap();
     std::fs::write(temp_file.path(), b"not a document").unwrap();
 
     let result = create_provider(temp_file.path());

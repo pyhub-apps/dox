@@ -87,7 +87,7 @@ impl ClaudeProvider {
         }
 
         let engine = TemplateEngine::with_variables(variables);
-        engine.render(&template).unwrap_or_else(|_| template)
+        engine.render(&template).unwrap_or(template)
     }
 
     /// Send non-streaming request to Claude
@@ -102,7 +102,7 @@ impl ClaudeProvider {
 
         let response = self
             .client
-            .post(&format!("{}/messages", self.base_url))
+            .post(format!("{}/messages", self.base_url))
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")
             .header("anthropic-version", "2023-06-01")

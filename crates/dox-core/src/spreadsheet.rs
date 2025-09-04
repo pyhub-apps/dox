@@ -186,6 +186,7 @@ pub struct SpreadsheetMetadata {
 
 /// Configuration for spreadsheet providers
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct SpreadsheetConfig {
     /// Default read options
     pub default_read_options: Option<ReadOptions>,
@@ -195,12 +196,3 @@ pub struct SpreadsheetConfig {
     pub provider_config: HashMap<String, serde_json::Value>,
 }
 
-impl Default for SpreadsheetConfig {
-    fn default() -> Self {
-        Self {
-            default_read_options: None,
-            default_write_options: None,
-            provider_config: HashMap::new(),
-        }
-    }
-}

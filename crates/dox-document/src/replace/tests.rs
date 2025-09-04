@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    
-    
+
     use rstest::*;
     use std::collections::HashMap;
 

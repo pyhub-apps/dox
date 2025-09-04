@@ -148,7 +148,7 @@ pub async fn execute(args: ExtractArgs) -> Result<()> {
 /// Check if a file is a supported document type
 fn is_supported_document(path: &std::path::Path) -> bool {
     match path.extension().and_then(|s| s.to_str()) {
-        Some("docx") | Some("pptx") | Some("pdf") | Some("xlsx") => true,
+        Some("docx") | Some("pptx") | Some("pdf") | Some("xlsx") | Some("txt") => true,
         _ => false,
     }
 }

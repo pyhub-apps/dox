@@ -1,6 +1,12 @@
 // TODO: Implement template processing
 pub struct TemplateProcessor;
 
+impl Default for TemplateProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TemplateProcessor {
     pub fn new() -> Self {
         TemplateProcessor

@@ -7,7 +7,20 @@ use crate::utils::{
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info};
+use xml::reader::{EventReader, XmlEvent};
 use zip::ZipArchive;
+
+/// PowerPoint document metadata
+#[derive(Debug, Default, Clone)]
+pub struct PowerPointMetadata {
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub subject: Option<String>,
+    pub creator: Option<String>,
+    pub total_slides: usize,
+    pub created: Option<String>,
+    pub modified: Option<String>,
+}
 
 /// PowerPoint document provider for .pptx files
 #[derive(Debug)]
@@ -141,6 +154,106 @@ impl PowerPointProvider {
         }
 
         Ok(count)
+    }
+
+    /// Extract metadata from core.xml properties
+    pub fn get_metadata(&self) -> Result<PowerPointMetadata, DocumentError> {
+        use crate::utils::extract_zip;
+        let mut archive = extract_zip(&self.archive_data)?;
+
+        let mut metadata = PowerPointMetadata::default();
+        metadata.total_slides = self.slide_contents.len();
+
+        // Try to read core.xml for basic metadata
+        if let Ok(core_xml) = read_zip_file(&mut archive, "docProps/core.xml") {
+            metadata = self.parse_core_properties(&core_xml)?;
+            metadata.total_slides = self.slide_contents.len(); // Override with actual slide count
+        }
+
+        // Try to read app.xml for additional metadata
+        if let Ok(app_xml) = read_zip_file(&mut archive, "docProps/app.xml") {
+            self.parse_app_properties(&app_xml, &mut metadata)?;
+        }
+
+        Ok(metadata)
+    }
+
+    /// Parse core properties XML
+    fn parse_core_properties(&self, xml_data: &[u8]) -> Result<PowerPointMetadata, DocumentError> {
+        let mut metadata = PowerPointMetadata::default();
+        let reader = EventReader::new(std::io::Cursor::new(xml_data));
+
+        let mut current_element = String::new();
+        let mut text_content = String::new();
+
+        for event in reader {
+            match event {
+                Ok(XmlEvent::StartElement { name, .. }) => {
+                    current_element = name.local_name.clone();
+                    text_content.clear();
+                }
+                Ok(XmlEvent::Characters(text)) => {
+                    text_content.push_str(&text);
+                }
+                Ok(XmlEvent::EndElement { .. }) => {
+                    match current_element.as_str() {
+                        "title" => metadata.title = Some(text_content.clone()),
+                        "creator" => metadata.author = Some(text_content.clone()),
+                        "subject" => metadata.subject = Some(text_content.clone()),
+                        "created" => metadata.created = Some(text_content.clone()),
+                        "modified" => metadata.modified = Some(text_content.clone()),
+                        _ => {}
+                    }
+                    current_element.clear();
+                }
+                Ok(XmlEvent::EndDocument) => break,
+                Err(_) => break,
+                _ => {}
+            }
+        }
+
+        Ok(metadata)
+    }
+
+    /// Parse app properties XML for additional metadata
+    fn parse_app_properties(
+        &self,
+        xml_data: &[u8],
+        metadata: &mut PowerPointMetadata,
+    ) -> Result<(), DocumentError> {
+        let reader = EventReader::new(std::io::Cursor::new(xml_data));
+
+        let mut current_element = String::new();
+        let mut text_content = String::new();
+
+        for event in reader {
+            match event {
+                Ok(XmlEvent::StartElement { name, .. }) => {
+                    current_element = name.local_name.clone();
+                    text_content.clear();
+                }
+                Ok(XmlEvent::Characters(text)) => {
+                    text_content.push_str(&text);
+                }
+                Ok(XmlEvent::EndElement { .. }) => {
+                    match current_element.as_str() {
+                        "Application" => metadata.creator = Some(text_content.clone()),
+                        "Slides" => {
+                            if let Ok(slides) = text_content.parse::<usize>() {
+                                metadata.total_slides = slides;
+                            }
+                        }
+                        _ => {}
+                    }
+                    current_element.clear();
+                }
+                Ok(XmlEvent::EndDocument) => break,
+                Err(_) => break,
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 }
 

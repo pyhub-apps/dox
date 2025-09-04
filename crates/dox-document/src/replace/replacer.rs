@@ -72,7 +72,7 @@ impl Replacer {
         for (i, file) in files.iter().enumerate() {
             progress.set_message(format!("처리 중: {}", file.display()));
 
-            match self.process_file(&file, &options).await {
+            match self.process_file(file, &options).await {
                 Ok(count) => {
                     results.files_processed += 1;
                     results.total_replacements += count;

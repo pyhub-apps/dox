@@ -86,7 +86,7 @@ impl OpenAIProvider {
         }
 
         let engine = TemplateEngine::with_variables(variables);
-        engine.render(&template).unwrap_or_else(|_| template)
+        engine.render(&template).unwrap_or(template)
     }
 
     /// Send non-streaming request to OpenAI
@@ -98,7 +98,7 @@ impl OpenAIProvider {
 
         let response = self
             .client
-            .post(&format!("{}/chat/completions", self.base_url))
+            .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
             .json(&openai_request)

@@ -212,9 +212,9 @@ impl Config {
 
             _ => {
                 // Check custom values
-                self.custom.get(key).and_then(|v| match v {
-                    serde_json::Value::String(s) => Some(s.clone()),
-                    v => Some(v.to_string()),
+                self.custom.get(key).map(|v| match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    v => v.to_string(),
                 })
             }
         }

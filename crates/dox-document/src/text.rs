@@ -43,12 +43,12 @@ impl DocumentProvider for TextProvider {
     }
 
     fn save(&self) -> Result<(), DocumentError> {
-        fs::write(&self.path, &self.content).map_err(|e| DocumentError::Io(e))?;
+        fs::write(&self.path, &self.content).map_err(DocumentError::Io)?;
         Ok(())
     }
 
     fn save_as(&self, path: &Path) -> Result<(), DocumentError> {
-        fs::write(path, &self.content).map_err(|e| DocumentError::Io(e))?;
+        fs::write(path, &self.content).map_err(DocumentError::Io)?;
         Ok(())
     }
 

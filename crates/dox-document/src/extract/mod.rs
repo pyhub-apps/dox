@@ -64,6 +64,7 @@ pub struct ExtractedTable {
 
 /// Document metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct ExtractMetadata {
     /// Document title
     pub title: Option<String>,
@@ -81,19 +82,6 @@ pub struct ExtractMetadata {
     pub modified: Option<String>,
 }
 
-impl Default for ExtractMetadata {
-    fn default() -> Self {
-        Self {
-            title: None,
-            author: None,
-            subject: None,
-            creator: None,
-            total_pages: 0,
-            created: None,
-            modified: None,
-        }
-    }
-}
 
 /// Output format for extracted content
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -259,7 +247,7 @@ impl OutputFormatter {
 
             // Add tables
             for table in &page.tables {
-                output.push_str("\n");
+                output.push('\n');
                 if !table.data.is_empty() {
                     // Add table header
                     if let Some(header_row) = table.data.first() {
@@ -272,10 +260,10 @@ impl OutputFormatter {
                         }
                     }
                 }
-                output.push_str("\n");
+                output.push('\n');
             }
 
-            output.push_str("\n");
+            output.push('\n');
         }
 
         Ok(output)

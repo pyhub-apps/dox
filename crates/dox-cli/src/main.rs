@@ -1,6 +1,5 @@
 use anyhow::Result;
 use clap::Parser;
-use colored;
 use dox_core::{config::Config, DoxError, ErrorReporter, LogConfig, LogFormat};
 use tracing::{debug, error, info};
 

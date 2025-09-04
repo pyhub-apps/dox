@@ -6,7 +6,7 @@
 use anyhow::Result;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use std::fs::{File};
+use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use zip::{write::SimpleFileOptions, ZipWriter};
@@ -110,6 +110,7 @@ pub struct MarkdownDocument {
 
 /// Markdown document metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct MarkdownMetadata {
     /// Document title
     pub title: Option<String>,
@@ -123,17 +124,6 @@ pub struct MarkdownMetadata {
     pub custom: std::collections::HashMap<String, String>,
 }
 
-impl Default for MarkdownMetadata {
-    fn default() -> Self {
-        MarkdownMetadata {
-            title: None,
-            author: None,
-            date: None,
-            tags: Vec::new(),
-            custom: std::collections::HashMap::new(),
-        }
-    }
-}
 
 /// Markdown document section
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -563,6 +553,12 @@ impl DocumentCreatorFactory {
 /// Word document creator
 pub struct WordDocumentCreator;
 
+impl Default for WordDocumentCreator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WordDocumentCreator {
     pub fn new() -> Self {
         WordDocumentCreator
@@ -633,8 +629,7 @@ impl WordDocumentGenerator {
         zip_writer: &mut ZipWriter<File>,
         markdown: &MarkdownDocument,
     ) -> Result<()> {
-        let content = format!(
-            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        let content = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
     <Application>dox CLI</Application>
     <ScaleCrop>false</ScaleCrop>
@@ -644,8 +639,7 @@ impl WordDocumentGenerator {
     <SharedDoc>false</SharedDoc>
     <HyperlinksChanged>false</HyperlinksChanged>
     <AppVersion>1.0</AppVersion>
-</Properties>"#
-        );
+</Properties>"#.to_string();
 
         zip_writer.start_file("docProps/app.xml", SimpleFileOptions::default())?;
         zip_writer.write_all(content.as_bytes())?;
@@ -997,6 +991,12 @@ impl WordDocumentGenerator {
 /// PowerPoint document creator
 pub struct PowerPointDocumentCreator;
 
+impl Default for PowerPointDocumentCreator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PowerPointDocumentCreator {
     pub fn new() -> Self {
         Self
@@ -1155,8 +1155,7 @@ impl PowerPointDocumentGenerator {
     ) -> Result<()> {
         let title = markdown.title.as_deref().unwrap_or("Untitled");
 
-        let content = format!(
-            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        let content = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
     <p:sldMasterIdLst>
         <p:sldMasterId id="2147483648" r:id="rId1"/>
@@ -1181,8 +1180,7 @@ impl PowerPointDocumentGenerator {
             </a:defRPr>
         </a:lvl1pPr>
     </p:defaultTextStyle>
-</p:presentation>"#
-        );
+</p:presentation>"#.to_string();
 
         zip_writer.start_file("ppt/presentation.xml", SimpleFileOptions::default())?;
         zip_writer.write_all(content.as_bytes())?;

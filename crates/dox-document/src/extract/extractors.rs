@@ -35,14 +35,16 @@ impl DocumentExtractor for WordExtractor {
             tables: vec![], // TODO: Implement table extraction for Word
         };
 
+        // Extract metadata from Word document
+        let word_metadata = provider.get_metadata().unwrap_or_default();
         let metadata = ExtractMetadata {
-            title: None, // TODO: Extract from Word document properties
-            author: None,
-            subject: None,
-            creator: None,
-            total_pages: 1,
-            created: None,
-            modified: None,
+            title: word_metadata.title,
+            author: word_metadata.author,
+            subject: word_metadata.subject,
+            creator: word_metadata.creator,
+            total_pages: word_metadata.total_pages.max(1), // At least 1 page
+            created: word_metadata.created,
+            modified: word_metadata.modified,
         };
 
         Ok(ExtractResult {
@@ -81,30 +83,50 @@ impl DocumentExtractor for PowerPointExtractor {
         );
 
         let provider = PowerPointProvider::open(path)?;
-        let text = provider.get_text()?;
 
-        // For PowerPoint documents, we treat the entire document as one page for now
-        // TODO: Implement proper slide-by-slide extraction
-        let page = ExtractedPage {
-            number: 1,
-            text: text.clone(),
-            elements: vec![ExtractedElement {
-                element_type: "paragraph".to_string(),
-                content: text,
-                level: None,
-                marker: None,
-            }],
-            tables: vec![], // TODO: Implement table extraction for PowerPoint
-        };
+        // Extract slides individually
+        let slide_count = provider.slide_count();
+        let mut pages = Vec::new();
 
+        for slide_index in 0..slide_count {
+            let slide_text = provider.get_slide_text(slide_index)?;
+
+            if !slide_text.trim().is_empty() {
+                let page = ExtractedPage {
+                    number: slide_index + 1,
+                    text: slide_text.clone(),
+                    elements: vec![ExtractedElement {
+                        element_type: "slide".to_string(),
+                        content: slide_text,
+                        level: None,
+                        marker: None,
+                    }],
+                    tables: vec![], // TODO: Implement table extraction for PowerPoint
+                };
+                pages.push(page);
+            }
+        }
+
+        // If no slides had content, create a single empty page
+        if pages.is_empty() {
+            pages.push(ExtractedPage {
+                number: 1,
+                text: String::new(),
+                elements: vec![],
+                tables: vec![],
+            });
+        }
+
+        // Extract metadata from PowerPoint document
+        let ppt_metadata = provider.get_metadata().unwrap_or_default();
         let metadata = ExtractMetadata {
-            title: None, // TODO: Extract from PowerPoint document properties
-            author: None,
-            subject: None,
-            creator: None,
-            total_pages: 1, // TODO: Count actual slides
-            created: None,
-            modified: None,
+            title: ppt_metadata.title,
+            author: ppt_metadata.author,
+            subject: ppt_metadata.subject,
+            creator: ppt_metadata.creator,
+            total_pages: ppt_metadata.total_slides.max(1), // At least 1 page
+            created: ppt_metadata.created,
+            modified: ppt_metadata.modified,
         };
 
         Ok(ExtractResult {
@@ -114,7 +136,7 @@ impl DocumentExtractor for PowerPointExtractor {
                 .to_string_lossy()
                 .to_string(),
             format: "PowerPoint Presentation (.pptx)".to_string(),
-            pages: vec![page],
+            pages,
             metadata,
             success: true,
             error: None,
@@ -140,30 +162,50 @@ impl DocumentExtractor for ExcelExtractor {
         debug!("Extracting text from Excel document: {}", path.display());
 
         let provider = ExcelProvider::open(path)?;
-        let text = provider.get_text()?;
 
-        // For Excel documents, we treat the entire document as one page
-        // TODO: Implement proper sheet-by-sheet extraction
-        let page = ExtractedPage {
-            number: 1,
-            text: text.clone(),
-            elements: vec![ExtractedElement {
-                element_type: "data".to_string(),
-                content: text,
-                level: None,
-                marker: None,
-            }],
-            tables: vec![], // TODO: Implement table extraction for Excel
-        };
+        // Extract sheets individually
+        let sheet_names = provider.get_sheet_names()?;
+        let mut pages = Vec::new();
 
+        for (sheet_index, sheet_name) in sheet_names.iter().enumerate() {
+            let sheet_text = provider.get_sheet_text(sheet_name)?;
+
+            if !sheet_text.trim().is_empty() {
+                let page = ExtractedPage {
+                    number: sheet_index + 1,
+                    text: sheet_text.clone(),
+                    elements: vec![ExtractedElement {
+                        element_type: "sheet".to_string(),
+                        content: sheet_text,
+                        level: None,
+                        marker: None,
+                    }],
+                    tables: vec![], // TODO: Implement table extraction for Excel
+                };
+                pages.push(page);
+            }
+        }
+
+        // If no sheets had content, create a single empty page
+        if pages.is_empty() {
+            pages.push(ExtractedPage {
+                number: 1,
+                text: String::new(),
+                elements: vec![],
+                tables: vec![],
+            });
+        }
+
+        // Extract metadata from Excel document
+        let excel_metadata = provider.get_metadata().unwrap_or_default();
         let metadata = ExtractMetadata {
-            title: None, // TODO: Extract from Excel document properties
-            author: None,
-            subject: None,
-            creator: None,
-            total_pages: 1, // TODO: Count actual sheets
-            created: None,
-            modified: None,
+            title: excel_metadata.title,
+            author: excel_metadata.author,
+            subject: excel_metadata.subject,
+            creator: excel_metadata.creator,
+            total_pages: excel_metadata.total_sheets.max(1), // At least 1 page
+            created: excel_metadata.created,
+            modified: excel_metadata.modified,
         };
 
         Ok(ExtractResult {
@@ -173,7 +215,7 @@ impl DocumentExtractor for ExcelExtractor {
                 .to_string_lossy()
                 .to_string(),
             format: "Excel Spreadsheet (.xlsx)".to_string(),
-            pages: vec![page],
+            pages,
             metadata,
             success: true,
             error: None,
@@ -262,8 +304,8 @@ impl DocumentExtractor for PdfExtractor {
             subject: pdf_metadata.subject,
             creator: pdf_metadata.creator,
             total_pages: pdf_metadata.page_count,
-            created: None,  // TODO: Extract creation date
-            modified: None, // TODO: Extract modification date
+            created: pdf_metadata.created,
+            modified: pdf_metadata.modified,
         };
 
         Ok(ExtractResult {

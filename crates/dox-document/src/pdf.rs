@@ -92,12 +92,54 @@ impl PdfProvider {
                                     Some(String::from_utf8_lossy(creator_str).to_string());
                             }
                         }
+
+                        // Extract creation date
+                        if let Ok(created_obj) = dict.get(b"CreationDate") {
+                            if let Ok(created_str) = created_obj.as_str() {
+                                let date_string = String::from_utf8_lossy(created_str).to_string();
+                                metadata.created = Self::parse_pdf_date(&date_string);
+                            }
+                        }
+
+                        // Extract modification date
+                        if let Ok(modified_obj) = dict.get(b"ModDate") {
+                            if let Ok(modified_str) = modified_obj.as_str() {
+                                let date_string = String::from_utf8_lossy(modified_str).to_string();
+                                metadata.modified = Self::parse_pdf_date(&date_string);
+                            }
+                        }
                     }
                 }
             }
         }
 
         Ok(metadata)
+    }
+
+    /// Parse PDF date format (D:YYYYMMDDHHmmSSOHH'mm')
+    fn parse_pdf_date(date_str: &str) -> Option<String> {
+        // PDF date format: D:YYYYMMDDHHmmSSOHH'mm'
+        // We'll extract and format the basic parts
+        if date_str.len() < 16 || !date_str.starts_with("D:") {
+            return None;
+        }
+
+        let date_part = &date_str[2..]; // Remove "D:" prefix
+
+        if date_part.len() >= 14 {
+            // Extract YYYYMMDDHHMMSS
+            if let (Ok(year), Ok(month), Ok(day)) = (
+                date_part[0..4].parse::<u32>(),
+                date_part[4..6].parse::<u32>(),
+                date_part[6..8].parse::<u32>(),
+            ) {
+                if (1..=12).contains(&month) && (1..=31).contains(&day) {
+                    return Some(format!("{:04}-{:02}-{:02}", year, month, day));
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -109,6 +151,8 @@ pub struct PdfMetadata {
     pub subject: Option<String>,
     pub creator: Option<String>,
     pub page_count: usize,
+    pub created: Option<String>,
+    pub modified: Option<String>,
 }
 
 impl DocumentProvider for PdfProvider {
