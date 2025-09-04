@@ -235,7 +235,8 @@ impl PdfExtractor {
         Self
     }
 
-    /// Extract pages from PDF text
+    /// Extract pages from PDF text (legacy method, kept for compatibility)
+    #[allow(dead_code)]
     fn split_into_pages(&self, full_text: &str) -> Vec<ExtractedPage> {
         // Simple page splitting - look for form feed characters or page break patterns
         let pages: Vec<&str> = if full_text.contains('\x0C') {

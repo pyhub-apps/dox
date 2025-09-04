@@ -123,7 +123,7 @@ impl EncryptedPdfHandler {
     }
 
     /// Attempt to authenticate with a password
-    pub fn authenticate(&mut self, password: &str) -> Result<PasswordResult, DocumentError> {
+    pub fn authenticate(&mut self, _password: &str) -> Result<PasswordResult, DocumentError> {
         debug!("Attempting to authenticate with provided password");
 
         let document = self.load_document()?;
