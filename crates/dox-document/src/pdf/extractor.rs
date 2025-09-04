@@ -278,7 +278,7 @@ impl AdvancedPdfExtractor {
             })?
             .len();
 
-        let should_stream = self.config.enable_streaming 
+        let should_stream = self.config.enable_streaming
             && file_size > (self.config.max_memory_mb * 1024 * 1024) as u64;
 
         let result = if should_stream {
@@ -310,8 +310,14 @@ impl AdvancedPdfExtractor {
     }
 
     /// In-memory extraction for smaller files
-    fn extract_in_memory(&mut self, file_size: u64) -> Result<(Vec<PdfPage>, PdfDocumentMetadata), DocumentError> {
-        debug!("Using in-memory extraction for PDF ({}MB)", file_size / 1024 / 1024);
+    fn extract_in_memory(
+        &mut self,
+        file_size: u64,
+    ) -> Result<(Vec<PdfPage>, PdfDocumentMetadata), DocumentError> {
+        debug!(
+            "Using in-memory extraction for PDF ({}MB)",
+            file_size / 1024 / 1024
+        );
 
         // Load document
         self.load_document()?;
@@ -322,7 +328,7 @@ impl AdvancedPdfExtractor {
 
         // Extract text content
         let text_content = self.extract_text_content()?;
-        
+
         // Process pages
         let pages = self.process_pages(document, &text_content)?;
 
@@ -330,8 +336,14 @@ impl AdvancedPdfExtractor {
     }
 
     /// Streaming extraction for larger files
-    fn extract_streaming(&mut self, file_size: u64) -> Result<(Vec<PdfPage>, PdfDocumentMetadata), DocumentError> {
-        debug!("Using streaming extraction for PDF ({}MB)", file_size / 1024 / 1024);
+    fn extract_streaming(
+        &mut self,
+        file_size: u64,
+    ) -> Result<(Vec<PdfPage>, PdfDocumentMetadata), DocumentError> {
+        debug!(
+            "Using streaming extraction for PDF ({}MB)",
+            file_size / 1024 / 1024
+        );
 
         // For streaming, we'll process pages one at a time
         self.load_document()?;
@@ -350,9 +362,9 @@ impl AdvancedPdfExtractor {
     fn load_document(&mut self) -> Result<(), DocumentError> {
         if self.document.is_none() {
             debug!("Loading PDF document: {}", self.path.display());
-            
-            let document = Document::load(&self.path)
-                .map_err(|e| DocumentError::OperationFailed {
+
+            let document =
+                Document::load(&self.path).map_err(|e| DocumentError::OperationFailed {
                     reason: format!("Failed to load PDF: {}", e),
                 })?;
 
@@ -362,7 +374,11 @@ impl AdvancedPdfExtractor {
     }
 
     /// Extract document metadata
-    fn extract_metadata(&self, document: &Document, file_size: u64) -> Result<PdfDocumentMetadata, DocumentError> {
+    fn extract_metadata(
+        &self,
+        document: &Document,
+        file_size: u64,
+    ) -> Result<PdfDocumentMetadata, DocumentError> {
         let mut metadata = PdfDocumentMetadata {
             title: None,
             author: None,
@@ -394,7 +410,7 @@ impl AdvancedPdfExtractor {
                         metadata.subject = self.extract_string_field(dict, b"Subject");
                         metadata.creator = self.extract_string_field(dict, b"Creator");
                         metadata.producer = self.extract_string_field(dict, b"Producer");
-                        
+
                         metadata.creation_date = self.extract_date_field(dict, b"CreationDate");
                         metadata.modification_date = self.extract_date_field(dict, b"ModDate");
                     }
@@ -450,20 +466,23 @@ impl AdvancedPdfExtractor {
             source: e.into(),
         })?;
 
-        pdf_extract::extract_text_from_mem(&bytes)
-            .map_err(|e| DocumentError::OperationFailed {
-                reason: format!("Text extraction failed: {}", e),
-            })
+        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| DocumentError::OperationFailed {
+            reason: format!("Text extraction failed: {}", e),
+        })
     }
 
     /// Process pages for in-memory extraction
-    fn process_pages(&self, document: &Document, text_content: &str) -> Result<Vec<PdfPage>, DocumentError> {
+    fn process_pages(
+        &self,
+        document: &Document,
+        text_content: &str,
+    ) -> Result<Vec<PdfPage>, DocumentError> {
         let page_count = document.get_pages().len();
         debug!("Processing {} pages", page_count);
 
         // Split text into pages (simplified approach)
         let page_texts = self.split_text_into_pages(text_content, page_count);
-        
+
         let mut pages = Vec::new();
         for (page_num, page_text) in page_texts.into_iter().enumerate() {
             let page = self.process_single_page(document, page_num + 1, &page_text)?;
@@ -479,12 +498,12 @@ impl AdvancedPdfExtractor {
         debug!("Processing {} pages with streaming", page_count);
 
         let mut pages = Vec::new();
-        
+
         // For streaming, we'd implement page-by-page processing
         // For now, fallback to simplified approach
         let text_content = self.extract_text_content()?;
         let page_texts = self.split_text_into_pages(&text_content, page_count);
-        
+
         for (page_num, page_text) in page_texts.into_iter().enumerate() {
             let page = self.process_single_page(document, page_num + 1, &page_text)?;
             pages.push(page);
@@ -503,7 +522,7 @@ impl AdvancedPdfExtractor {
             let chars_per_page = text.len() / page_count;
             let mut pages = Vec::new();
             let mut start = 0;
-            
+
             for _ in 0..page_count {
                 let end = (start + chars_per_page).min(text.len());
                 pages.push(text[start..end].to_string());
@@ -519,7 +538,12 @@ impl AdvancedPdfExtractor {
     }
 
     /// Process a single page
-    fn process_single_page(&self, document: &Document, page_num: usize, text: &str) -> Result<PdfPage, DocumentError> {
+    fn process_single_page(
+        &self,
+        document: &Document,
+        page_num: usize,
+        text: &str,
+    ) -> Result<PdfPage, DocumentError> {
         debug!("Processing page {}", page_num);
 
         // Get page dimensions
@@ -565,7 +589,11 @@ impl AdvancedPdfExtractor {
     }
 
     /// Get page dimensions
-    fn get_page_dimensions(&self, _document: &Document, _page_num: usize) -> Result<PageDimensions, DocumentError> {
+    fn get_page_dimensions(
+        &self,
+        _document: &Document,
+        _page_num: usize,
+    ) -> Result<PageDimensions, DocumentError> {
         // Default dimensions for now
         Ok(PageDimensions {
             width: 612.0,  // Standard US Letter width in points
@@ -580,14 +608,14 @@ impl AdvancedPdfExtractor {
         // In a full implementation, this would analyze font sizes, positions, etc.
         let lines: Vec<&str> = text.lines().collect();
         let mut blocks = Vec::new();
-        
+
         for (i, line) in lines.iter().enumerate() {
             if line.trim().is_empty() {
                 continue;
             }
 
             let block_type = self.classify_text_block(line);
-            
+
             blocks.push(TextBlock {
                 text: line.to_string(),
                 block_type,
@@ -598,10 +626,10 @@ impl AdvancedPdfExtractor {
                     italic: false,
                 },
                 position: BlockPosition {
-                    x: 72.0, // 1 inch margin
+                    x: 72.0,                      // 1 inch margin
                     y: 720.0 - (i as f32 * 14.0), // Estimate line position
-                    width: 468.0, // 6.5 inches
-                    height: 14.0,  // Line height
+                    width: 468.0,                 // 6.5 inches
+                    height: 14.0,                 // Line height
                 },
             });
         }
@@ -612,7 +640,7 @@ impl AdvancedPdfExtractor {
     /// Classify text block type
     fn classify_text_block(&self, text: &str) -> TextBlockType {
         let text = text.trim();
-        
+
         // Simple classification based on text patterns
         if text.chars().all(|c| c.is_uppercase() || c.is_whitespace()) && text.len() < 100 {
             TextBlockType::Heading(2)
@@ -629,14 +657,14 @@ impl AdvancedPdfExtractor {
     fn extract_tables(&self, text: &str, dimensions: &PageDimensions) -> Vec<PdfTable> {
         let mut tables = Vec::new();
         let lines: Vec<&str> = text.lines().collect();
-        
+
         // Look for table patterns (lines with multiple columns separated by whitespace)
         let mut table_start = None;
         let mut table_lines = Vec::new();
-        
+
         for (i, line) in lines.iter().enumerate() {
             let cols: Vec<&str> = line.split_whitespace().collect();
-            
+
             if cols.len() >= 3 && self.looks_like_table_row(line) {
                 if table_start.is_none() {
                     table_start = Some(i);
@@ -645,16 +673,24 @@ impl AdvancedPdfExtractor {
             } else if !table_lines.is_empty() {
                 // End of table
                 if table_lines.len() >= 2 {
-                    tables.push(self.create_pdf_table(table_lines.clone(), table_start.unwrap(), dimensions));
+                    tables.push(self.create_pdf_table(
+                        table_lines.clone(),
+                        table_start.unwrap(),
+                        dimensions,
+                    ));
                 }
                 table_lines.clear();
                 table_start = None;
             }
         }
-        
+
         // Handle table at end of text
         if !table_lines.is_empty() && table_lines.len() >= 2 {
-            tables.push(self.create_pdf_table(table_lines.clone(), table_start.unwrap(), dimensions));
+            tables.push(self.create_pdf_table(
+                table_lines.clone(),
+                table_start.unwrap(),
+                dimensions,
+            ));
         }
 
         tables
@@ -663,16 +699,21 @@ impl AdvancedPdfExtractor {
     /// Check if a line looks like a table row
     fn looks_like_table_row(&self, line: &str) -> bool {
         let cols: Vec<&str> = line.split_whitespace().collect();
-        cols.len() >= 3 && 
-        line.chars().filter(|c| c.is_whitespace()).count() >= 4 &&
-        !line.trim().is_empty()
+        cols.len() >= 3
+            && line.chars().filter(|c| c.is_whitespace()).count() >= 4
+            && !line.trim().is_empty()
     }
 
     /// Create a PDF table from extracted lines
-    fn create_pdf_table(&self, lines: Vec<Vec<&str>>, start_line: usize, dimensions: &PageDimensions) -> PdfTable {
+    fn create_pdf_table(
+        &self,
+        lines: Vec<Vec<&str>>,
+        start_line: usize,
+        dimensions: &PageDimensions,
+    ) -> PdfTable {
         let rows = lines.len();
         let cols = lines.iter().map(|row| row.len()).max().unwrap_or(0);
-        
+
         let data: Vec<Vec<String>> = lines
             .into_iter()
             .map(|row| row.into_iter().map(|cell| cell.to_string()).collect())

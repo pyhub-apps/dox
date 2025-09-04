@@ -524,7 +524,7 @@ mod tests {
         let formula = Formula::parse("=SUM(A1:A3)").unwrap();
         assert_eq!(formula.expression, "SUM(A1:A3)");
         assert!(!formula.cell_refs.is_empty());
-        
+
         // Test with simple addition formula instead
         let simple_formula = Formula::parse("=A1 + A2 + A3").unwrap();
         let mut context = FormulaContext::new();
@@ -539,11 +539,11 @@ mod tests {
 
     #[test]
     fn test_average_function() {
-        // Test parsing of AVERAGE function 
+        // Test parsing of AVERAGE function
         let formula = Formula::parse("=AVERAGE(A1:A2)").unwrap();
         assert_eq!(formula.expression, "AVERAGE(A1:A2)");
         assert!(!formula.cell_refs.is_empty());
-        
+
         // Test with simple formula instead for now
         let simple_formula = Formula::parse("=(A1 + A2) / 2").unwrap();
         let mut context = FormulaContext::new();

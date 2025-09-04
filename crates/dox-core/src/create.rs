@@ -109,8 +109,7 @@ pub struct MarkdownDocument {
 }
 
 /// Markdown document metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MarkdownMetadata {
     /// Document title
     pub title: Option<String>,
@@ -123,7 +122,6 @@ pub struct MarkdownMetadata {
     /// Custom metadata fields
     pub custom: std::collections::HashMap<String, String>,
 }
-
 
 /// Markdown document section
 #[derive(Debug, Clone, Serialize, Deserialize)]

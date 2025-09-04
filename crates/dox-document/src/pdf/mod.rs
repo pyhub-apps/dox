@@ -1,29 +1,29 @@
 //! Advanced PDF processing module
 
-pub mod provider;
-pub mod extractor;
 pub mod encrypted;
+pub mod extractor;
 pub mod ocr;
+pub mod provider;
 
 #[cfg(test)]
 pub mod tests;
 
 pub use extractor::{
-    AdvancedPdfExtractor, AdvancedPdfResult, PdfExtractConfig, PdfPage, TextBlock, TextBlockType,
-    FontInfo, BlockPosition, PdfTable, ImageInfo, PageDimensions, PdfDocumentMetadata,
-    PdfPermissions, ExtractionStats,
+    AdvancedPdfExtractor, AdvancedPdfResult, BlockPosition, ExtractionStats, FontInfo, ImageInfo,
+    PageDimensions, PdfDocumentMetadata, PdfExtractConfig, PdfPage, PdfPermissions, PdfTable,
+    TextBlock, TextBlockType,
 };
 
 pub use encrypted::{
-    EncryptedPdfHandler, EncryptionInfo, EncryptionPermissions, PasswordResult, ExtractionStrategy,
+    EncryptedPdfHandler, EncryptionInfo, EncryptionPermissions, ExtractionStrategy, PasswordResult,
 };
 
 pub use ocr::{
-    PdfOcrProcessor, OcrConfig, OcrResult, OcrAnalysis, ProcessingEstimate, OcrError,
-    OcrEngine, OcrEngineInfo, BoundingBox, OcrWord,
+    BoundingBox, OcrAnalysis, OcrConfig, OcrEngine, OcrEngineInfo, OcrError, OcrResult, OcrWord,
+    PdfOcrProcessor, ProcessingEstimate,
 };
 
-pub use provider::{PdfProvider, PdfMetadata};
+pub use provider::{PdfMetadata, PdfProvider};
 
 use crate::provider::DocumentError;
 use std::path::Path;

@@ -289,7 +289,10 @@ impl PdfExtractor {
 
 impl DocumentExtractor for PdfExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
-        debug!("Extracting text from PDF document with advanced features: {}", path.display());
+        debug!(
+            "Extracting text from PDF document with advanced features: {}",
+            path.display()
+        );
 
         // Use advanced PDF provider
         let provider = PdfProvider::open_layout_critical(path)?;
@@ -318,16 +321,16 @@ impl DocumentExtractor for PdfExtractor {
         // Extract comprehensive metadata
         let pdf_metadata = provider.get_metadata().unwrap_or_default();
         let stats = provider.get_extraction_stats().ok();
-        
+
         let metadata = ExtractMetadata {
             title: pdf_metadata.title,
             author: pdf_metadata.author,
             subject: pdf_metadata.subject,
             creator: pdf_metadata.creator,
-            total_pages: if let Some(ref stats) = stats { 
-                stats.total_pages 
-            } else { 
-                pdf_metadata.page_count 
+            total_pages: if let Some(ref stats) = stats {
+                stats.total_pages
+            } else {
+                pdf_metadata.page_count
             },
             created: pdf_metadata.created,
             modified: pdf_metadata.modified,
@@ -350,12 +353,15 @@ impl DocumentExtractor for PdfExtractor {
     fn supported_types(&self) -> &[DocumentType] {
         &[DocumentType::Pdf]
     }
-
 }
 
 impl PdfExtractor {
     /// Extract pages with advanced features (tables, layout information)
-    fn extract_advanced_pages(&self, provider: &PdfProvider, full_text: &str) -> Result<Vec<ExtractedPage>, DocumentError> {
+    fn extract_advanced_pages(
+        &self,
+        provider: &PdfProvider,
+        full_text: &str,
+    ) -> Result<Vec<ExtractedPage>, DocumentError> {
         debug!("Extracting pages with advanced features");
 
         // Try to extract tables first
@@ -434,7 +440,12 @@ impl PdfExtractor {
         }
 
         // Check for headings (all caps, short lines)
-        if line.len() < 100 && line.chars().filter(|c| c.is_alphabetic()).all(|c| c.is_uppercase()) {
+        if line.len() < 100
+            && line
+                .chars()
+                .filter(|c| c.is_alphabetic())
+                .all(|c| c.is_uppercase())
+        {
             return ("heading".to_string(), Some(2), None);
         }
 

@@ -156,11 +156,10 @@ mod tests {
 
     #[test]
     fn test_validation_template() {
-        let template = ValidationTemplate::dropdown_template("Colors", vec![
-            "Red".to_string(),
-            "Green".to_string(),
-            "Blue".to_string(),
-        ]);
+        let template = ValidationTemplate::dropdown_template(
+            "Colors",
+            vec!["Red".to_string(), "Green".to_string(), "Blue".to_string()],
+        );
 
         assert_eq!(template.name, "Colors");
         assert_eq!(template.validations.len(), 1);
@@ -180,7 +179,7 @@ mod tests {
         assert_eq!(config.chunk_size, 1000);
         assert_eq!(config.max_memory_mb, 512);
         assert!(config.parallel_processing);
-        
+
         let large_file_config = StreamingConfig::for_very_large_files();
         assert_eq!(large_file_config.chunk_size, 500);
         assert_eq!(large_file_config.max_memory_mb, 256);
@@ -196,7 +195,10 @@ mod tests {
         assert_eq!(security_config.handling_option, MacroHandlingOption::Block);
 
         let permissive_config = MacroConfig::permissive();
-        assert_eq!(permissive_config.handling_option, MacroHandlingOption::Preserve);
+        assert_eq!(
+            permissive_config.handling_option,
+            MacroHandlingOption::Preserve
+        );
     }
 
     #[test]
@@ -223,7 +225,7 @@ mod tests {
         assert_eq!(simple_formula.expression, "2+2");
     }
 
-    #[test] 
+    #[test]
     fn test_cell_reference_creation() {
         let single_ref = CellReference::new_single(None, 0, 0);
         assert_eq!(single_ref.col, 0);

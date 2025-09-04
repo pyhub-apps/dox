@@ -44,7 +44,7 @@
 - **향상된 메타데이터**: 제목, 작성자, 생성일/수정일 등 풍부한 정보
 - **배치 처리**: 디렉토리 전체 문서를 한 번에 처리
 - **병렬 처리**: 다중 파일을 동시에 처리하여 속도 향상
-- **다양한 출력 형식**: 텍스트, JSON, Markdown 지원
+- **다양한 출력 형식**: 텍스트, JSON, Markdown, HTML 지원
 - **한글 지원**: 파일명과 내용 모두 완벽한 UTF-8 인코딩
 - **고급 필터링**: glob 패턴으로 파일 제외 기능
 
@@ -358,6 +358,7 @@ dox extract -i 한글문서.txt          # 텍스트 파일 (한글 지원)
 dox extract -i report.docx --format text      # 일반 텍스트 (기본값)
 dox extract -i report.docx --format json      # JSON 형식 
 dox extract -i report.docx --format markdown  # 마크다운 형식
+dox extract -i report.docx --format html      # HTML 형식 (테이블 레이아웃 보존) 🆕
 
 # 메타데이터 포함 (제목, 작성자, 생성일/수정일 등)
 dox extract -i document.pdf --format json --with-metadata
@@ -366,6 +367,7 @@ dox extract -i presentation.pptx --format json --with-metadata
 # 파일로 저장
 dox extract -i presentation.pptx -o output.txt
 dox extract -i spreadsheet.xlsx -o data.json --format json
+dox extract -i document.pdf -o report.html --format html  # 테이블이 포함된 HTML
 
 # 한글 파일명과 내용 처리
 dox extract -i "프로젝트 보고서.docx" --format json
@@ -446,6 +448,102 @@ dox extract -i ./spreadsheets --concurrent --output-dir ./csv-data
 
 === Summary ===
 총계    200    300    250
+```
+
+#### 🌐 HTML 출력 기능 (신규!) ✨
+
+PDF를 포함한 모든 문서를 **브라우저에서 볼 수 있는 아름다운 HTML**로 변환합니다.
+
+##### 주요 특징
+- **테이블 레이아웃 완벽 보존**: 원본 문서의 표 구조를 HTML 테이블로 정확히 재현
+- **전문적인 스타일링**: 모던한 CSS로 깔끔하고 읽기 쉬운 디자인
+- **문서 메타데이터 표시**: 제목, 작성자, 생성일 등을 헤더에 표시
+- **반응형 디자인**: 모바일과 데스크톱에서 모두 최적화
+- **다중 페이지 지원**: PDF의 페이지 구분을 유지
+- **브라우저 호환**: 모든 모던 브라우저에서 완벽 표시
+
+##### 사용 예시
+
+```bash
+# PDF를 HTML로 변환 (테이블 포함)
+dox extract -i financial-report.pdf --format html -o report.html
+
+# Word 문서를 HTML로 변환
+dox extract -i presentation.docx --format html -o slides.html
+
+# 디렉토리 전체를 HTML로 배치 변환
+dox extract -i ./documents --format html --output-dir ./html-reports
+
+# 테이블이 많은 Excel 파일을 HTML로 변환
+dox extract -i spreadsheet.xlsx --format html -o data.html
+```
+
+##### 생성되는 HTML 특징
+
+**문서 구조**:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>문서 제목</title>
+    <!-- 반응형 메타태그 및 CSS 스타일 -->
+</head>
+<body>
+    <div class="document-header">
+        <h1>문서 제목</h1>
+        <div class="document-meta">
+            <div><strong>Author:</strong> 작성자</div>
+            <div><strong>Created:</strong> 생성일</div>
+        </div>
+    </div>
+    
+    <div class="page">
+        <!-- 구조화된 텍스트 -->
+        <h2>제목</h2>
+        <p>단락 내용</p>
+        
+        <!-- 완벽하게 보존된 테이블 -->
+        <div class="extracted-table">
+            <h3>Table 1 (3×4)</h3>
+            <table>
+                <thead>
+                    <tr><th>항목</th><th>1월</th><th>2월</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>매출</td><td>1000</td><td>1200</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+```
+
+**스타일 특징**:
+- 깔끔한 타이포그래피 (시스템 폰트 사용)
+- 테이블 호버 효과 및 zebra striping
+- 적절한 여백과 레이아웃
+- 모바일 친화적 반응형 디자인
+
+##### 활용 사례
+
+```bash
+# 웹사이트용 문서 변환
+dox extract -i company-report.pdf --format html -o web/report.html
+
+# 이메일 첨부용 HTML 생성
+dox extract -i quarterly-data.xlsx --format html -o summary.html
+
+# 문서 아카이브를 웹에서 볼 수 있도록 변환
+for file in docs/*.pdf; do
+    name=$(basename "$file" .pdf)
+    dox extract -i "$file" --format html -o "web/${name}.html"
+done
+
+# PDF 테스트 도구로 HTML 미리보기
+cargo run --example pdf_test ~/documents/report.pdf --html
+# → /tmp/pdf_test_output_*.html 파일 생성
+# → open /tmp/pdf_test_output_*.html 명령으로 브라우저에서 확인
 ```
 
 ### 템플릿 처리
@@ -576,7 +674,7 @@ dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
 
 - **문서**: .docx (Word), .pptx (PowerPoint), .pdf, .xlsx (Excel), .txt (텍스트)
 - **입력**: .md (Markdown), .yaml/.yml (YAML), .json (JSON)
-- **출력**: text, json, markdown
+- **출력**: text, json, markdown, html
 
 ## 🛠️ 빌드 정보
 

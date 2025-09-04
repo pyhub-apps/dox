@@ -185,8 +185,7 @@ pub struct SpreadsheetMetadata {
 }
 
 /// Configuration for spreadsheet providers
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SpreadsheetConfig {
     /// Default read options
     pub default_read_options: Option<ReadOptions>,
@@ -195,4 +194,3 @@ pub struct SpreadsheetConfig {
     /// Provider-specific configuration
     pub provider_config: HashMap<String, serde_json::Value>,
 }
-

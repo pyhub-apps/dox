@@ -49,11 +49,12 @@ pub struct ExtractArgs {
     /// • text: 일반 텍스트 (서식 없음)
     /// • json: 구조화된 JSON (메타데이터 포함 가능)
     /// • markdown: 마크다운 형식 (제목, 목록 등 보존)
+    /// • html: HTML 형식 (테이블, 레이아웃 보존)
     #[arg(
         long,
         value_enum,
         default_value = "text",
-        help = "출력 형식\n  • text: 일반 텍스트 (서식 없음)\n  • json: 구조화된 JSON (메타데이터 포함 가능)\n  • markdown: 마크다운 형식 (제목, 목록 등 보존)"
+        help = "출력 형식\n  • text: 일반 텍스트 (서식 없음)\n  • json: 구조화된 JSON (메타데이터 포함 가능)\n  • markdown: 마크다운 형식 (제목, 목록 등 보존)\n  • html: HTML 형식 (테이블, 레이아웃 보존)"
     )]
     pub format: ExtractFormat,
 
@@ -94,6 +95,7 @@ pub enum ExtractFormat {
     Text,
     Json,
     Markdown,
+    Html,
 }
 
 pub async fn execute(args: ExtractArgs) -> Result<()> {
@@ -302,6 +304,7 @@ async fn process_single_file(file: &std::path::Path, args: &ExtractArgs) -> Resu
         ExtractFormat::Text => dox_document::ExtractFormat::Text,
         ExtractFormat::Json => dox_document::ExtractFormat::Json,
         ExtractFormat::Markdown => dox_document::ExtractFormat::Markdown,
+        ExtractFormat::Html => dox_document::ExtractFormat::Html,
     };
 
     // Format the output
@@ -373,6 +376,7 @@ impl ExtractFormat {
             ExtractFormat::Text => "txt",
             ExtractFormat::Json => "json",
             ExtractFormat::Markdown => "md",
+            ExtractFormat::Html => "html",
         }
     }
 }

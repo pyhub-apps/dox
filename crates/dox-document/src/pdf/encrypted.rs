@@ -3,7 +3,7 @@
 use crate::provider::DocumentError;
 use lopdf::Document;
 use std::path::Path;
-use tracing::{debug, warn, info};
+use tracing::{debug, info, warn};
 
 /// Encrypted PDF handler
 #[derive(Debug)]
@@ -114,10 +114,11 @@ impl EncryptedPdfHandler {
 
             info!("PDF is encrypted, analyzing encryption details");
             // Clone the document for analysis to avoid borrow issues
-            let doc_clone = Document::load(&self.path).map_err(|e| DocumentError::OperationFailed {
-                reason: format!("Failed to load PDF for analysis: {}", e),
-            })?;
-            
+            let doc_clone =
+                Document::load(&self.path).map_err(|e| DocumentError::OperationFailed {
+                    reason: format!("Failed to load PDF for analysis: {}", e),
+                })?;
+
             self.analyze_encryption(&doc_clone)
         }
     }
@@ -127,7 +128,7 @@ impl EncryptedPdfHandler {
         debug!("Attempting to authenticate with provided password");
 
         let document = self.load_document()?;
-        
+
         if !document.is_encrypted() {
             return Ok(PasswordResult::NotNeeded);
         }
@@ -153,13 +154,7 @@ impl EncryptedPdfHandler {
     pub fn try_common_passwords(&mut self) -> Result<Option<String>, DocumentError> {
         let common_passwords = [
             "", // Empty password
-            "password",
-            "123456",
-            "admin",
-            "user",
-            "test",
-            "pdf",
-            "document",
+            "password", "123456", "admin", "user", "test", "pdf", "document",
         ];
 
         info!("Trying common passwords for encrypted PDF");
@@ -189,7 +184,10 @@ impl EncryptedPdfHandler {
     }
 
     /// Load the authenticated document
-    pub fn load_authenticated_document(&mut self, _password: Option<&str>) -> Result<Document, DocumentError> {
+    pub fn load_authenticated_document(
+        &mut self,
+        _password: Option<&str>,
+    ) -> Result<Document, DocumentError> {
         // Simplified implementation - just load the document normally
         debug!("Loading document");
         self.load_document().cloned()
@@ -213,8 +211,8 @@ impl EncryptedPdfHandler {
     /// Load the PDF document
     fn load_document(&mut self) -> Result<&Document, DocumentError> {
         if self.document.is_none() {
-            let document = Document::load(&self.path)
-                .map_err(|e| DocumentError::OperationFailed {
+            let document =
+                Document::load(&self.path).map_err(|e| DocumentError::OperationFailed {
                     reason: format!("Failed to load PDF: {}", e),
                 })?;
             self.document = Some(document);
@@ -240,7 +238,8 @@ impl EncryptedPdfHandler {
                         // Extract security handler
                         if let Ok(filter) = dict.get(b"Filter") {
                             if let Ok(filter_name) = filter.as_name() {
-                                info.security_handler = Some(String::from_utf8_lossy(filter_name).to_string());
+                                info.security_handler =
+                                    Some(String::from_utf8_lossy(filter_name).to_string());
                             }
                         }
 
@@ -307,7 +306,10 @@ pub enum ExtractionStrategy {
 impl ExtractionStrategy {
     /// Check if full text extraction is allowed
     pub fn allows_text_extraction(&self) -> bool {
-        matches!(self, ExtractionStrategy::Normal | ExtractionStrategy::AccessibilityOnly)
+        matches!(
+            self,
+            ExtractionStrategy::Normal | ExtractionStrategy::AccessibilityOnly
+        )
     }
 
     /// Check if table extraction is allowed

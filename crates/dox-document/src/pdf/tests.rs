@@ -103,7 +103,7 @@ mod tests {
     fn test_ocr_processor() {
         let config = OcrConfig::default();
         let processor = PdfOcrProcessor::new(config);
-        
+
         // Test basic creation
         assert!(format!("{:?}", processor).contains("PdfOcrProcessor"));
     }
@@ -202,7 +202,7 @@ mod tests {
         assert_eq!(position.height, 14.0);
     }
 
-    #[test] 
+    #[test]
     fn test_pdf_table() {
         let table_data = vec![
             vec!["Header 1".to_string(), "Header 2".to_string()],

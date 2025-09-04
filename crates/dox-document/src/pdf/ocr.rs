@@ -1,8 +1,8 @@
 //! OCR support for image-based PDF documents
-//! 
+//!
 //! This module provides OCR (Optical Character Recognition) capabilities for PDFs
 //! that contain scanned images or text that cannot be extracted directly.
-//! 
+//!
 //! Note: This is a framework implementation. Full OCR support would require
 //! integrating with tesseract-rs or similar OCR libraries.
 
@@ -14,11 +14,15 @@ use tracing::{debug, info, warn};
 /// OCR engine interface
 pub trait OcrEngine: Send + Sync {
     /// Extract text from an image buffer
-    fn extract_text_from_image(&self, image_data: &[u8], language: &str) -> Result<String, OcrError>;
-    
+    fn extract_text_from_image(
+        &self,
+        image_data: &[u8],
+        language: &str,
+    ) -> Result<String, OcrError>;
+
     /// Get supported languages
     fn supported_languages(&self) -> Vec<String>;
-    
+
     /// Get engine name and version
     fn engine_info(&self) -> OcrEngineInfo;
 }
@@ -36,13 +40,13 @@ pub struct OcrEngineInfo {
 pub enum OcrError {
     #[error("OCR engine not available: {reason}")]
     EngineNotAvailable { reason: String },
-    
+
     #[error("Language not supported: {language}")]
     LanguageNotSupported { language: String },
-    
+
     #[error("Image processing failed: {reason}")]
     ImageProcessingFailed { reason: String },
-    
+
     #[error("Text recognition failed: {reason}")]
     RecognitionFailed { reason: String },
 }
@@ -67,7 +71,7 @@ pub struct OcrConfig {
 impl Default for OcrConfig {
     fn default() -> Self {
         Self {
-            primary_language: "eng".to_string(), // English
+            primary_language: "eng".to_string(),         // English
             fallback_languages: vec!["kor".to_string()], // Korean as fallback
             confidence_threshold: 0.6,
             preprocess_images: true,
@@ -172,11 +176,11 @@ impl PdfOcrProcessor {
     /// Initialize OCR engine (would integrate with tesseract-rs or similar)
     pub fn initialize_engine(&mut self) -> Result<(), OcrError> {
         info!("Initializing OCR engine");
-        
+
         // In a real implementation, this would initialize tesseract or another OCR library
         // For now, we'll use a mock engine
         self.engine = Some(Box::new(MockOcrEngine::new()));
-        
+
         debug!("OCR engine initialized successfully");
         Ok(())
     }
@@ -198,10 +202,16 @@ impl PdfOcrProcessor {
     }
 
     /// Process a PDF page with OCR
-    pub fn process_page(&self, page_data: &[u8], page_number: usize) -> Result<OcrResult, OcrError> {
+    pub fn process_page(
+        &self,
+        page_data: &[u8],
+        page_number: usize,
+    ) -> Result<OcrResult, OcrError> {
         debug!("Processing page {} with OCR", page_number);
 
-        let engine = self.engine.as_ref()
+        let engine = self
+            .engine
+            .as_ref()
             .ok_or_else(|| OcrError::EngineNotAvailable {
                 reason: "OCR engine not initialized".to_string(),
             })?;
@@ -209,7 +219,8 @@ impl PdfOcrProcessor {
         let start_time = std::time::Instant::now();
 
         // Try primary language first
-        let mut result = engine.extract_text_from_image(page_data, &self.config.primary_language)?;
+        let mut result =
+            engine.extract_text_from_image(page_data, &self.config.primary_language)?;
         let processing_time = start_time.elapsed().as_millis() as u64;
 
         // If confidence is low, try fallback languages
@@ -241,12 +252,16 @@ impl PdfOcrProcessor {
     /// Get OCR processing estimates
     pub fn estimate_processing(&self, analysis: &OcrAnalysis) -> ProcessingEstimate {
         let pages_to_process = analysis.image_based_pages.len() + analysis.mixed_pages.len();
-        
+
         ProcessingEstimate {
             pages_to_process,
             estimated_time_minutes: (pages_to_process * 2).max(1), // ~2 minutes per page
             memory_requirements_mb: (pages_to_process * 50).max(100), // ~50MB per page
-            recommended_batch_size: if pages_to_process > 20 { 5 } else { pages_to_process },
+            recommended_batch_size: if pages_to_process > 20 {
+                5
+            } else {
+                pages_to_process
+            },
         }
     }
 
@@ -305,7 +320,11 @@ impl MockOcrEngine {
 }
 
 impl OcrEngine for MockOcrEngine {
-    fn extract_text_from_image(&self, _image_data: &[u8], _language: &str) -> Result<String, OcrError> {
+    fn extract_text_from_image(
+        &self,
+        _image_data: &[u8],
+        _language: &str,
+    ) -> Result<String, OcrError> {
         // Mock implementation - would integrate with actual OCR library
         debug!("Mock OCR: processing image data");
         Ok("Mock OCR extracted text content".to_string())
@@ -339,10 +358,12 @@ pub fn process_pdf_with_ocr(
 ) -> Result<Vec<OcrResult>, DocumentError> {
     let config = config.unwrap_or_default();
     let mut processor = PdfOcrProcessor::new(config);
-    
-    processor.initialize_engine().map_err(|e| DocumentError::OperationFailed {
-        reason: format!("OCR initialization failed: {}", e),
-    })?;
+
+    processor
+        .initialize_engine()
+        .map_err(|e| DocumentError::OperationFailed {
+            reason: format!("OCR initialization failed: {}", e),
+        })?;
 
     let analysis = processor.analyze_pdf_for_ocr(path)?;
     let mut results = Vec::new();
@@ -351,7 +372,7 @@ pub fn process_pdf_with_ocr(
     for page_num in analysis.image_based_pages {
         // In a real implementation, we'd extract page image data
         let mock_page_data = vec![0u8; 1024]; // Mock image data
-        
+
         match processor.process_page(&mock_page_data, page_num) {
             Ok(result) => results.push(result),
             Err(e) => {
@@ -381,9 +402,11 @@ mod tests {
     #[test]
     fn test_mock_ocr_engine() {
         let engine = MockOcrEngine::new();
-        let result = engine.extract_text_from_image(&[1, 2, 3, 4], "eng").unwrap();
+        let result = engine
+            .extract_text_from_image(&[1, 2, 3, 4], "eng")
+            .unwrap();
         assert!(!result.is_empty());
-        
+
         let languages = engine.supported_languages();
         assert!(languages.contains(&"eng".to_string()));
     }

@@ -1,7 +1,10 @@
 //! PDF document processing implementation with advanced features
 
+use super::{
+    AdvancedPdfExtractor, EncryptedPdfHandler, EncryptionInfo, OcrAnalysis, OcrConfig,
+    PdfExtractConfig, PdfOcrProcessor,
+};
 use crate::provider::{DocumentError, DocumentProvider, DocumentType};
-use super::{AdvancedPdfExtractor, PdfExtractConfig, EncryptedPdfHandler, EncryptionInfo, PdfOcrProcessor, OcrConfig, OcrAnalysis};
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, warn};
@@ -190,7 +193,7 @@ impl PdfProvider {
     pub fn authenticate(&self, password: &str) -> Result<bool, DocumentError> {
         info!("Attempting PDF authentication");
         let mut handler = EncryptedPdfHandler::new(&self.path)?;
-        
+
         match handler.authenticate(password) {
             Ok(result) => match result {
                 crate::pdf::PasswordResult::Success => {
@@ -205,11 +208,9 @@ impl PdfProvider {
                     warn!("PDF authentication failed - incorrect password");
                     Ok(false)
                 }
-                crate::pdf::PasswordResult::Error(err) => {
-                    Err(DocumentError::OperationFailed {
-                        reason: format!("PDF authentication error: {}", err),
-                    })
-                }
+                crate::pdf::PasswordResult::Error(err) => Err(DocumentError::OperationFailed {
+                    reason: format!("PDF authentication error: {}", err),
+                }),
             },
             Err(e) => Err(DocumentError::OperationFailed {
                 reason: format!("PDF authentication failed: {}", e),
@@ -221,10 +222,12 @@ impl PdfProvider {
     pub fn try_common_passwords(&self) -> Result<Option<String>, DocumentError> {
         info!("Trying common passwords for PDF");
         let mut handler = EncryptedPdfHandler::new(&self.path)?;
-        
-        handler.try_common_passwords().map_err(|e| DocumentError::OperationFailed {
-            reason: format!("Failed to try common passwords: {}", e),
-        })
+
+        handler
+            .try_common_passwords()
+            .map_err(|e| DocumentError::OperationFailed {
+                reason: format!("Failed to try common passwords: {}", e),
+            })
     }
 
     /// Analyze PDF for OCR requirements
@@ -234,7 +237,10 @@ impl PdfProvider {
             return Ok(cached_analysis.clone());
         }
 
-        debug!("Analyzing PDF for OCR requirements: {}", self.path.display());
+        debug!(
+            "Analyzing PDF for OCR requirements: {}",
+            self.path.display()
+        );
         let processor = PdfOcrProcessor::new(OcrConfig::default());
         let analysis = processor.analyze_pdf_for_ocr(&self.path)?;
 
@@ -296,7 +302,10 @@ impl PdfProvider {
 
     /// Get extraction statistics
     pub fn get_extraction_stats(&self) -> Result<crate::pdf::ExtractionStats, DocumentError> {
-        debug!("Getting extraction statistics for PDF: {}", self.path.display());
+        debug!(
+            "Getting extraction statistics for PDF: {}",
+            self.path.display()
+        );
 
         let mut extractor = AdvancedPdfExtractor::new(&self.path, self.extract_config.clone())?;
         let result = extractor.extract()?;
@@ -325,10 +334,12 @@ impl PdfProvider {
 
         let ocr_config = config.unwrap_or_default();
         let mut processor = PdfOcrProcessor::new(ocr_config);
-        
-        processor.initialize_engine().map_err(|e| DocumentError::OperationFailed {
-            reason: format!("OCR initialization failed: {}", e),
-        })?;
+
+        processor
+            .initialize_engine()
+            .map_err(|e| DocumentError::OperationFailed {
+                reason: format!("OCR initialization failed: {}", e),
+            })?;
 
         // For now, return a placeholder - in a full implementation, this would
         // process the PDF pages with OCR
