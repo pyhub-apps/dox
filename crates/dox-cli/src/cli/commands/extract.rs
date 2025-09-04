@@ -203,13 +203,13 @@ async fn process_sequential(
     args: &ExtractArgs,
 ) -> Result<ProcessResults> {
     use dox_core::utils::ui;
-    
+
     let mut results = ProcessResults::default();
     let progress = ui::create_progress_bar(files.len() as u64, "문서 추출 중");
 
     for (i, file) in files.iter().enumerate() {
         progress.set_message(format!("처리 중: {}", file.display()));
-        
+
         match process_single_file(file, args).await {
             Ok(size) => {
                 results.files_succeeded += 1;
@@ -220,7 +220,7 @@ async fn process_sequential(
                 results.files_failed += 1;
             }
         }
-        
+
         results.files_processed += 1;
         progress.set_position((i + 1) as u64);
     }
@@ -236,7 +236,10 @@ async fn process_concurrent(
 ) -> Result<ProcessResults> {
     use dox_core::utils::ui;
     use futures::stream::{self, StreamExt};
-    use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
 
     let max_workers = args.max_workers.min(files.len());
     let progress = ui::create_progress_bar(
@@ -251,13 +254,14 @@ async fn process_concurrent(
             let progress = progress.clone();
             let completed = Arc::clone(&completed);
             async move {
-                let result = process_single_file(&file, &args).await
+                let result = process_single_file(&file, &args)
+                    .await
                     .map(|size| (1, 1, 0, size))
                     .unwrap_or_else(|_| (1, 0, 1, 0));
-                
+
                 let current = completed.fetch_add(1, Ordering::SeqCst) + 1;
                 progress.set_position(current as u64);
-                
+
                 result
             }
         })
@@ -314,15 +318,11 @@ async fn process_single_file(file: &std::path::Path, args: &ExtractArgs) -> Resu
         }
 
         fs::write(&path, &formatted_output)?;
-        
+
         // Print individual file success (only in sequential mode)
         if !args.concurrent {
             use dox_core::utils::ui;
-            ui::print_success(&format!(
-                "저장됨: {} → {}",
-                file.display(),
-                path.display()
-            ));
+            ui::print_success(&format!("저장됨: {} → {}", file.display(), path.display()));
         }
     } else if args.input.is_file() {
         // Single file to stdout
@@ -349,17 +349,21 @@ fn determine_output_path(
 
     // Determine output directory
     let output_dir = args.output_dir.as_ref().cloned().unwrap_or_else(|| {
-        input_file.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."))
+        input_file
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."))
     });
 
     // Generate output filename with appropriate extension
-    let input_stem = input_file.file_stem()
+    let input_stem = input_file
+        .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("extracted");
-    
+
     let extension = args.format.extension();
     let output_filename = format!("{}.{}", input_stem, extension);
-    
+
     Ok(Some(output_dir.join(output_filename)))
 }
 
@@ -400,7 +404,7 @@ fn print_summary(results: &ProcessResults, _args: &ExtractArgs) {
         "{}개 파일 처리 완료 (성공: {}, 실패: {})",
         results.files_processed, results.files_succeeded, results.files_failed
     ));
-    
+
     if results.total_size > 0 {
         ui::print_info(&format!(
             "총 추출된 텍스트 크기: {}",

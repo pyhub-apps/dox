@@ -33,12 +33,12 @@ impl DocumentProvider for TextProvider {
     fn replace_text(&mut self, old: &str, new: &str) -> Result<usize, DocumentError> {
         let original_content = self.content.clone();
         self.content = self.content.replace(old, new);
-        
+
         let replacements = original_content.matches(old).count();
         if replacements > 0 {
             self.modified = true;
         }
-        
+
         Ok(replacements)
     }
 

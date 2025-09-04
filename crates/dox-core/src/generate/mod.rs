@@ -3,8 +3,8 @@
 //! This module provides the core abstractions and traits for AI-powered
 //! content generation that will be used by various AI providers.
 
-pub mod openai;
 pub mod claude;
+pub mod openai;
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};

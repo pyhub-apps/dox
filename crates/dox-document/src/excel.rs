@@ -25,11 +25,10 @@ impl ExcelProvider {
         }
 
         // Test if we can open the file
-        let _workbook: Xlsx<_> = open_workbook(path)
-            .map_err(|e| DocumentError::FileReadError {
-                path: path.display().to_string(),
-                source: anyhow::anyhow!("Failed to open Excel file: {}", e),
-            })?;
+        let _workbook: Xlsx<_> = open_workbook(path).map_err(|e| DocumentError::FileReadError {
+            path: path.display().to_string(),
+            source: anyhow::anyhow!("Failed to open Excel file: {}", e),
+        })?;
 
         Ok(ExcelProvider {
             path: path.to_path_buf(),
@@ -39,10 +38,13 @@ impl ExcelProvider {
 
     /// Extract text from all sheets in the Excel workbook
     fn extract_text_from_workbook(&self) -> Result<String, DocumentError> {
-        debug!("Extracting text from Excel workbook: {}", self.path.display());
+        debug!(
+            "Extracting text from Excel workbook: {}",
+            self.path.display()
+        );
 
-        let mut workbook: Xlsx<_> = open_workbook(&self.path)
-            .map_err(|e| DocumentError::FileReadError {
+        let mut workbook: Xlsx<_> =
+            open_workbook(&self.path).map_err(|e| DocumentError::FileReadError {
                 path: self.path.display().to_string(),
                 source: anyhow::anyhow!("Failed to open Excel file: {}", e),
             })?;
@@ -51,10 +53,10 @@ impl ExcelProvider {
 
         // Get all sheet names
         let sheet_names = workbook.sheet_names();
-        
+
         for sheet_name in sheet_names {
             debug!("Processing sheet: {}", sheet_name);
-            
+
             // Add sheet name as a header
             if !full_text.is_empty() {
                 full_text.push_str("\n\n");
@@ -66,7 +68,7 @@ impl ExcelProvider {
                 Ok(range) => {
                     for row in range.rows() {
                         let mut row_text = Vec::new();
-                        
+
                         for cell in row {
                             let cell_value = match cell {
                                 calamine::Data::Int(i) => i.to_string(),
@@ -79,12 +81,12 @@ impl ExcelProvider {
                                 calamine::Data::Error(e) => format!("#ERR: {:?}", e),
                                 calamine::Data::Empty => String::new(),
                             };
-                            
+
                             if !cell_value.is_empty() {
                                 row_text.push(cell_value);
                             }
                         }
-                        
+
                         if !row_text.is_empty() {
                             full_text.push_str(&row_text.join("\t"));
                             full_text.push('\n');
@@ -106,7 +108,10 @@ impl DocumentProvider for ExcelProvider {
     fn replace_text(&mut self, old: &str, new: &str) -> Result<usize, DocumentError> {
         // Excel text replacement is not implemented for now
         // This would require reading, modifying, and writing back the Excel file
-        debug!("Excel text replacement not implemented: '{}' -> '{}'", old, new);
+        debug!(
+            "Excel text replacement not implemented: '{}' -> '{}'",
+            old, new
+        );
         Ok(0)
     }
 
@@ -114,7 +119,7 @@ impl DocumentProvider for ExcelProvider {
         if !self.modified {
             return Ok(());
         }
-        
+
         // Excel saving is not implemented for now
         debug!("Excel save not implemented");
         Err(DocumentError::OperationFailed {

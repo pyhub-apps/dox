@@ -137,10 +137,7 @@ impl ExcelExtractor {
 
 impl DocumentExtractor for ExcelExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
-        debug!(
-            "Extracting text from Excel document: {}",
-            path.display()
-        );
+        debug!("Extracting text from Excel document: {}", path.display());
 
         let provider = ExcelProvider::open(path)?;
         let text = provider.get_text()?;
@@ -380,7 +377,10 @@ impl DocumentExtractor for TextExtractor {
         };
 
         let metadata = ExtractMetadata {
-            title: path.file_stem().and_then(|s| s.to_str()).map(|s| s.to_string()),
+            title: path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .map(|s| s.to_string()),
             author: None,
             subject: None,
             creator: None,

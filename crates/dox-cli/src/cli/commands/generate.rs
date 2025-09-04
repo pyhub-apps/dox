@@ -90,7 +90,9 @@ pub enum AIProvider {
 }
 
 pub async fn execute(args: GenerateArgs) -> Result<()> {
-    use dox_core::generate::{ContentGenerator, GenerationRequest, openai::OpenAIProvider, claude::ClaudeProvider};
+    use dox_core::generate::{
+        claude::ClaudeProvider, openai::OpenAIProvider, ContentGenerator, GenerationRequest,
+    };
     use dox_core::utils::ui;
     use std::fs;
 
@@ -127,7 +129,10 @@ pub async fn execute(args: GenerateArgs) -> Result<()> {
             Box::new(ClaudeProvider::new(api_key)) as Box<dyn ContentGenerator>
         }
         provider_name => {
-            return Err(anyhow::anyhow!("지원되지 않는 AI 제공업체: {}", provider_name));
+            return Err(anyhow::anyhow!(
+                "지원되지 않는 AI 제공업체: {}",
+                provider_name
+            ));
         }
     };
 
@@ -156,7 +161,7 @@ pub async fn execute(args: GenerateArgs) -> Result<()> {
             let extension = get_file_extension(args.content_type);
             output_path = output_path.with_extension(extension);
         }
-        
+
         // Save to file
         fs::write(&output_path, &response.content)?;
         ui::print_success(&format!(

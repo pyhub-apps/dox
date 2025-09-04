@@ -49,8 +49,16 @@ impl ClaudeProvider {
         ClaudeMessageRequest {
             model: request.model.clone(),
             max_tokens: request.max_tokens,
-            temperature: if request.temperature > 0.0 { Some(request.temperature) } else { None },
-            system: if !system_message.trim().is_empty() { Some(system_message) } else { None },
+            temperature: if request.temperature > 0.0 {
+                Some(request.temperature)
+            } else {
+                None
+            },
+            system: if !system_message.trim().is_empty() {
+                Some(system_message)
+            } else {
+                None
+            },
             messages: vec![ClaudeMessage {
                 role: "user".to_string(),
                 content: user_message,
@@ -67,13 +75,13 @@ impl ClaudeProvider {
         use super::TemplateEngine;
 
         let template = BuiltinTemplates::get_template(request.content_type, &request.language);
-        
+
         let mut variables = HashMap::new();
         variables.insert("prompt".to_string(), request.prompt.clone());
         variables.insert("language".to_string(), request.language.clone());
         variables.insert("audience".to_string(), request.audience.clone());
         variables.insert("tone".to_string(), request.tone.clone());
-        
+
         if let Some(context) = &request.context {
             variables.insert("context".to_string(), context.clone());
         }
@@ -83,9 +91,14 @@ impl ClaudeProvider {
     }
 
     /// Send non-streaming request to Claude
-    async fn send_request(&self, claude_request: &ClaudeMessageRequest) -> Result<ClaudeMessageResponse> {
-        debug!("Sending Claude API request: model={}, max_tokens={}", 
-               claude_request.model, claude_request.max_tokens);
+    async fn send_request(
+        &self,
+        claude_request: &ClaudeMessageRequest,
+    ) -> Result<ClaudeMessageResponse> {
+        debug!(
+            "Sending Claude API request: model={}, max_tokens={}",
+            claude_request.model, claude_request.max_tokens
+        );
 
         let response = self
             .client
@@ -99,20 +112,30 @@ impl ClaudeProvider {
 
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             error!("Claude API error: {} - {}", status, error_text);
             return Err(anyhow!("Claude API error {}: {}", status, error_text));
         }
 
         let claude_response: ClaudeMessageResponse = response.json().await?;
-        debug!("Received Claude response: {} content blocks, usage={:?}", 
-               claude_response.content.len(), claude_response.usage);
+        debug!(
+            "Received Claude response: {} content blocks, usage={:?}",
+            claude_response.content.len(),
+            claude_response.usage
+        );
 
         Ok(claude_response)
     }
 
     /// Convert Claude response to internal format
-    fn convert_response(&self, claude_response: ClaudeMessageResponse, model: String) -> GenerationResponse {
+    fn convert_response(
+        &self,
+        claude_response: ClaudeMessageResponse,
+        model: String,
+    ) -> GenerationResponse {
         let content = claude_response
             .content
             .iter()
@@ -149,7 +172,10 @@ impl ContentGenerator for ClaudeProvider {
 
         // Validate model support
         if !self.supports_model(&request.model) {
-            warn!("Model {} not explicitly supported, but attempting anyway", request.model);
+            warn!(
+                "Model {} not explicitly supported, but attempting anyway",
+                request.model
+            );
         }
 
         let claude_request = self.build_claude_request(request);
@@ -163,9 +189,11 @@ impl ContentGenerator for ClaudeProvider {
         let claude_response = self.send_request(&claude_request).await?;
         let response = self.convert_response(claude_response, request.model.clone());
 
-        info!("Content generation completed. Generated {} characters, used {} tokens", 
-              response.content.len(), 
-              response.usage.as_ref().map(|u| u.total_tokens).unwrap_or(0));
+        info!(
+            "Content generation completed. Generated {} characters, used {} tokens",
+            response.content.len(),
+            response.usage.as_ref().map(|u| u.total_tokens).unwrap_or(0)
+        );
 
         Ok(response)
     }

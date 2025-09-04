@@ -16,18 +16,18 @@ pub struct Replacer {
 impl Replacer {
     /// Create a new replacer with the given rules
     pub fn new(rules: Vec<Rule>) -> Self {
-        Replacer { 
-            rules, 
+        Replacer {
+            rules,
             smart_replacer: None,
         }
     }
 
     /// Create a new replacer with AI-powered smart replacement
     pub fn with_smart_replacement(
-        rules: Vec<Rule>, 
-        model: String, 
+        rules: Vec<Rule>,
+        model: String,
         api_key: String,
-        context: Option<String>
+        context: Option<String>,
     ) -> Result<Self> {
         let smart_replacer = SmartReplacer::new(model, api_key, context)?;
         Ok(Replacer {
@@ -185,7 +185,10 @@ impl Replacer {
         for rule in &self.rules {
             let replacement_text = if let Some(smart_replacer) = &self.smart_replacer {
                 // Use AI-enhanced replacement
-                match self.enhance_replacement_with_ai(smart_replacer, rule, &doc).await {
+                match self
+                    .enhance_replacement_with_ai(smart_replacer, rule, &doc)
+                    .await
+                {
                     Ok(enhanced_text) => enhanced_text,
                     Err(e) => {
                         warn!("AI enhancement failed, using original replacement: {}", e);
@@ -288,7 +291,7 @@ impl Replacer {
         // Get document context for AI analysis
         let document_text = doc.get_text().unwrap_or_default();
         let context_window = self.extract_context_around_text(&document_text, &rule.old, 200);
-        
+
         // Use AI to suggest enhanced replacement
         smart_replacer
             .suggest_replacement(&rule.old, &rule.new, &context_window)
@@ -296,7 +299,12 @@ impl Replacer {
     }
 
     /// Extract context around the target text for better AI analysis
-    fn extract_context_around_text(&self, full_text: &str, target: &str, window_size: usize) -> String {
+    fn extract_context_around_text(
+        &self,
+        full_text: &str,
+        target: &str,
+        window_size: usize,
+    ) -> String {
         if let Some(pos) = full_text.find(target) {
             let start = pos.saturating_sub(window_size);
             let end = (pos + target.len() + window_size).min(full_text.len());

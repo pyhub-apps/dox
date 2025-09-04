@@ -202,17 +202,120 @@ $ dox replace -r rules.yml -p ./
 # ~$Document.docx 같은 Office 임시 파일은 자동으로 제외됩니다
 ```
 
-### 문서 생성
+### 📄 문서 생성 (Create 명령어) ✨
+
+강력한 Markdown to Office 변환기로 Markdown 파일을 전문적인 Word 문서나 PowerPoint 프레젠테이션으로 변환합니다.
+
+#### 🎯 주요 기능
+- **완전한 Office Open XML 지원**: 표준 준수로 Microsoft Office와 완벽 호환
+- **한글 폰트 지원**: 맑은 고딕을 기본으로 한 아름다운 한글 문서
+- **자동 포맷 감지**: 파일 확장자로 출력 형식 자동 결정
+- **YAML Frontmatter 지원**: 문서 메타데이터 (제목, 저자, 날짜) 자동 처리
+- **고급 Markdown 지원**: 제목, 단락, 코드 블록, 목록, 인용문 등 모든 요소
+
+#### 기본 사용법
 
 ```bash
-# Markdown을 Word로 변환
-dox create -f report.md -o report.docx
+# Markdown을 Word 문서로 변환
+dox create --from report.md --output report.docx
 
-# Markdown을 PowerPoint로 변환
-dox create -f presentation.md -o slides.pptx
+# Markdown을 PowerPoint 프레젠테이션으로 변환
+dox create --from presentation.md --output slides.pptx
 
-# 템플릿 사용
-dox create -f content.md -o report.docx -t template.docx
+# 출력 형식 명시적 지정
+dox create -f content.md -o document --format docx
+
+# 기존 파일 강제 덮어쓰기
+dox create -f content.md -o report.docx --force
+```
+
+#### 📋 Markdown 예시
+
+Create 명령어는 다양한 Markdown 요소를 지원합니다:
+
+```markdown
+---
+title: "프로젝트 보고서"
+author: "홍길동"  
+date: "2024-09-04"
+---
+
+# 프로젝트 개요
+
+이 문서는 **dox Create 명령어**의 기능을 소개합니다.
+
+## 주요 특징
+
+### 코드 블록 지원
+```rust
+fn main() {
+    println!("Hello, dox!");
+}
+```
+
+### 목록 지원
+- 순서 없는 목록
+- **강조된 텍스트**
+- *기울임꼴 텍스트*
+
+1. 첫 번째 항목
+2. 두 번째 항목
+3. 세 번째 항목
+
+### 인용문
+> "dox는 문서 자동화의 새로운 표준입니다."
+
+---
+
+## 결론
+Create 명령어로 전문적인 Office 문서를 쉽게 만드세요!
+```
+
+#### 📊 변환 결과
+
+**Word 문서 (.docx)**:
+- 제목 스타일과 계층 구조 자동 적용
+- 한글 친화적 폰트 설정 (맑은 고딕)
+- 코드 블록은 Courier New 폰트로 처리
+- 목록과 인용문 스타일 자동 변환
+
+**PowerPoint 프레젠테이션 (.pptx)**:
+- 제목 슬라이드 자동 생성
+- 섹션별 내용 구조화
+- 한글 텍스트 최적화
+- 프로페셔널한 테마 적용
+
+#### 실제 활용 사례
+
+```bash
+# 기술 문서 작성
+dox create -f api-guide.md -o API가이드.docx
+
+# 회의 자료 생성  
+dox create -f meeting-notes.md -o 회의자료.pptx
+
+# 보고서 배치 생성
+for md in reports/*.md; do
+  name=$(basename "$md" .md)
+  dox create -f "$md" -o "outputs/${name}.docx"
+done
+
+# 프레젠테이션 제작 파이프라인
+dox create -f slides.md -o presentation.pptx --force
+echo "✅ 프레젠테이션이 생성되었습니다: presentation.pptx"
+```
+
+#### 🛠️ 고급 옵션
+
+```bash
+# 상세한 진행 상황 표시
+dox create -f large-document.md -o output.docx -v
+
+# 템플릿 사용 (향후 지원 예정)
+dox create -f content.md -o report.docx --template company-template.docx
+
+# 배치 처리와 함께 사용
+find . -name "*.md" -exec dox create -f {} -o {}.docx \;
 ```
 
 ### AI 콘텐츠 생성
@@ -453,7 +556,7 @@ dox --config ~/quiet-config.toml -v extract -i doc.pdf  # verbose 우선
 - [x] HeadVer 버전 관리 시스템
 - [x] GitHub Actions 릴리즈 자동화
 - [x] Replace 명령어 (AI 스마트 교체, 파일 잠금 보호 포함)
-- [ ] Create 명령어
+- [x] Create 명령어 ✨ (Markdown을 Word/PowerPoint로 변환, Office Open XML 지원)
 - [ ] Template 명령어
 - [x] Generate 명령어 (OpenAI, Claude AI 통합, 한국어 최적화)
 - [x] Extract 명령어 ✨ (Excel 지원, 병렬 처리, 배치 기능)

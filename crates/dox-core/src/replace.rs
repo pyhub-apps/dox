@@ -7,7 +7,10 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::generate::{ContentGenerator, GenerationRequest, ContentType, openai::OpenAIProvider, claude::ClaudeProvider};
+use crate::generate::{
+    claude::ClaudeProvider, openai::OpenAIProvider, ContentGenerator, ContentType,
+    GenerationRequest,
+};
 
 /// AI-powered smart replacement engine
 pub struct SmartReplacer {
@@ -39,7 +42,8 @@ impl SmartReplacer {
         target_replacement: &str,
         document_context: &str,
     ) -> Result<String> {
-        let prompt = self.build_replacement_prompt(original_text, target_replacement, document_context);
+        let prompt =
+            self.build_replacement_prompt(original_text, target_replacement, document_context);
 
         let request = GenerationRequest {
             prompt,
@@ -82,10 +86,7 @@ impl SmartReplacer {
             3. 전문적이고 일관성 있는 표현 사용\n\
             4. 교체된 텍스트만 출력 (설명 없이)\n\n\
             교체된 텍스트:",
-            original_text,
-            target_replacement,
-            document_context,
-            context_info
+            original_text, target_replacement, document_context, context_info
         )
     }
 
@@ -118,11 +119,11 @@ impl SmartReplacer {
         };
 
         let response = self.ai_provider.generate(&request).await?;
-        
+
         // Try to parse the JSON response
         match serde_json::from_str::<ContextAnalysis>(&response.content) {
             Ok(analysis) => Ok(analysis),
-            Err(_) => Ok(ContextAnalysis::default()) // Fallback to default
+            Err(_) => Ok(ContextAnalysis::default()), // Fallback to default
         }
     }
 }

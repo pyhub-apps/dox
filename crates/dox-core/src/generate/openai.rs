@@ -74,13 +74,13 @@ impl OpenAIProvider {
         use super::TemplateEngine;
 
         let template = BuiltinTemplates::get_template(request.content_type, &request.language);
-        
+
         let mut variables = HashMap::new();
         variables.insert("prompt".to_string(), request.prompt.clone());
         variables.insert("language".to_string(), request.language.clone());
         variables.insert("audience".to_string(), request.audience.clone());
         variables.insert("tone".to_string(), request.tone.clone());
-        
+
         if let Some(context) = &request.context {
             variables.insert("context".to_string(), context.clone());
         }
@@ -91,8 +91,10 @@ impl OpenAIProvider {
 
     /// Send non-streaming request to OpenAI
     async fn send_request(&self, openai_request: &OpenAIChatRequest) -> Result<OpenAIChatResponse> {
-        debug!("Sending OpenAI API request: model={}, max_tokens={:?}", 
-               openai_request.model, openai_request.max_tokens);
+        debug!(
+            "Sending OpenAI API request: model={}, max_tokens={:?}",
+            openai_request.model, openai_request.max_tokens
+        );
 
         let response = self
             .client
@@ -105,20 +107,30 @@ impl OpenAIProvider {
 
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             error!("OpenAI API error: {} - {}", status, error_text);
             return Err(anyhow!("OpenAI API error {}: {}", status, error_text));
         }
 
         let openai_response: OpenAIChatResponse = response.json().await?;
-        debug!("Received OpenAI response: {} choices, usage={:?}", 
-               openai_response.choices.len(), openai_response.usage);
+        debug!(
+            "Received OpenAI response: {} choices, usage={:?}",
+            openai_response.choices.len(),
+            openai_response.usage
+        );
 
         Ok(openai_response)
     }
 
     /// Convert OpenAI response to internal format
-    fn convert_response(&self, openai_response: OpenAIChatResponse, model: String) -> GenerationResponse {
+    fn convert_response(
+        &self,
+        openai_response: OpenAIChatResponse,
+        model: String,
+    ) -> GenerationResponse {
         let content = openai_response
             .choices
             .first()
@@ -148,7 +160,10 @@ impl ContentGenerator for OpenAIProvider {
 
         // Validate model support
         if !self.supports_model(&request.model) {
-            warn!("Model {} not explicitly supported, but attempting anyway", request.model);
+            warn!(
+                "Model {} not explicitly supported, but attempting anyway",
+                request.model
+            );
         }
 
         let openai_request = self.build_openai_request(request);
@@ -162,9 +177,11 @@ impl ContentGenerator for OpenAIProvider {
         let openai_response = self.send_request(&openai_request).await?;
         let response = self.convert_response(openai_response, request.model.clone());
 
-        info!("Content generation completed. Generated {} characters, used {} tokens", 
-              response.content.len(), 
-              response.usage.as_ref().map(|u| u.total_tokens).unwrap_or(0));
+        info!(
+            "Content generation completed. Generated {} characters, used {} tokens",
+            response.content.len(),
+            response.usage.as_ref().map(|u| u.total_tokens).unwrap_or(0)
+        );
 
         Ok(response)
     }

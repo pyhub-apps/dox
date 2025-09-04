@@ -95,9 +95,7 @@ pub async fn execute(args: ReplaceArgs) -> Result<()> {
 
     // Validate arguments
     if args.find.is_some() != args.to.is_some() {
-        return Err(anyhow::anyhow!(
-            "--find와 --to 옵션은 함께 사용해야 합니다"
-        ));
+        return Err(anyhow::anyhow!("--find와 --to 옵션은 함께 사용해야 합니다"));
     }
 
     if args.find.is_none() && args.rules.is_none() {
@@ -156,9 +154,7 @@ pub async fn execute(args: ReplaceArgs) -> Result<()> {
                 ) {
                     Ok(smart_replacer) => smart_replacer,
                     Err(e) => {
-                        ui::print_warning(&format!(
-                            "AI 초기화 실패, 일반 모드로 전환: {}", e
-                        ));
+                        ui::print_warning(&format!("AI 초기화 실패, 일반 모드로 전환: {}", e));
                         Replacer::new(rules)
                     }
                 }
@@ -212,6 +208,5 @@ fn get_ai_api_key(model: &str) -> Result<String> {
         return Err(anyhow::anyhow!("지원되지 않는 AI 모델: {}", model));
     };
 
-    std::env::var(env_var)
-        .map_err(|_| anyhow::anyhow!("{} 환경변수가 필요합니다", env_var))
+    std::env::var(env_var).map_err(|_| anyhow::anyhow!("{} 환경변수가 필요합니다", env_var))
 }

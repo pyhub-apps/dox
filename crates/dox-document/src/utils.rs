@@ -250,14 +250,14 @@ pub fn is_file_locked(path: &Path) -> bool {
         .read(true)
         .write(true)
         .truncate(false)
-        .open(path) 
+        .open(path)
     {
         Ok(_) => false, // File is not locked
         Err(e) => match e.kind() {
             ErrorKind::PermissionDenied => true, // Likely locked
             ErrorKind::AlreadyExists => true,    // Might be locked
-            _ => false, // Other errors, assume not locked
-        }
+            _ => false,                          // Other errors, assume not locked
+        },
     }
 }
 
@@ -275,8 +275,8 @@ pub fn is_office_temp_file(path: &Path) -> bool {
 pub fn validate_file_access(path: &Path) -> Result<(), DocumentError> {
     // Check if file exists
     if !path.exists() {
-        return Err(DocumentError::DocumentNotFound { 
-            path: path.display().to_string() 
+        return Err(DocumentError::DocumentNotFound {
+            path: path.display().to_string(),
         });
     }
 
@@ -284,7 +284,7 @@ pub fn validate_file_access(path: &Path) -> Result<(), DocumentError> {
     if is_office_temp_file(path) {
         return Err(DocumentError::OperationFailed {
             reason: format!(
-                "임시 파일입니다. 원본 파일을 지정해주세요: {}", 
+                "임시 파일입니다. 원본 파일을 지정해주세요: {}",
                 path.display()
             ),
         });
@@ -294,7 +294,7 @@ pub fn validate_file_access(path: &Path) -> Result<(), DocumentError> {
     if is_file_locked(path) {
         return Err(DocumentError::OperationFailed {
             reason: format!(
-                "파일이 다른 프로그램에서 사용 중입니다. 먼저 파일을 닫아주세요: {}", 
+                "파일이 다른 프로그램에서 사용 중입니다. 먼저 파일을 닫아주세요: {}",
                 path.display()
             ),
         });

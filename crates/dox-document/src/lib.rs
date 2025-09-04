@@ -23,7 +23,10 @@ pub use pdf::{PdfMetadata, PdfProvider};
 pub use powerpoint::PowerPointProvider;
 pub use provider::{create_provider, DocumentError, DocumentProvider, DocumentType};
 pub use text::TextProvider;
-pub use utils::{create_zip, extract_zip, is_office_document, validate_file_access, is_file_locked, is_office_temp_file};
+pub use utils::{
+    create_zip, extract_zip, is_file_locked, is_office_document, is_office_temp_file,
+    validate_file_access,
+};
 pub use word::WordProvider;
 
 // Re-export compatibility layer
