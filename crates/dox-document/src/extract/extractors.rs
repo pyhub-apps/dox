@@ -288,22 +288,46 @@ impl PdfExtractor {
 
 impl DocumentExtractor for PdfExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractResult, DocumentError> {
-        debug!("Extracting text from PDF document: {}", path.display());
+        debug!("Extracting text from PDF document with advanced features: {}", path.display());
 
-        let provider = PdfProvider::open(path)?;
+        // Use advanced PDF provider
+        let provider = PdfProvider::open_layout_critical(path)?;
 
-        // Extract text content
-        let full_text = provider.get_text()?;
-        let pages = self.split_into_pages(&full_text);
+        // Check if PDF is encrypted
+        let encryption_info = provider.check_encryption()?;
+        if encryption_info.is_encrypted {
+            debug!("PDF is encrypted, attempting authentication");
+            if let Some(password) = provider.try_common_passwords()? {
+                debug!("Found working password: {}", password);
+            }
+        }
 
-        // Extract metadata
+        // Try advanced text extraction first
+        let full_text = match provider.get_advanced_text() {
+            Ok(text) => text,
+            Err(_) => {
+                debug!("Advanced extraction failed, falling back to basic extraction");
+                provider.get_text()?
+            }
+        };
+
+        // Extract advanced pages with tables
+        let pages = self.extract_advanced_pages(&provider, &full_text)?;
+
+        // Extract comprehensive metadata
         let pdf_metadata = provider.get_metadata().unwrap_or_default();
+        let stats = provider.get_extraction_stats().ok();
+        
         let metadata = ExtractMetadata {
             title: pdf_metadata.title,
             author: pdf_metadata.author,
             subject: pdf_metadata.subject,
             creator: pdf_metadata.creator,
-            total_pages: pdf_metadata.page_count,
+            total_pages: if let Some(ref stats) = stats { 
+                stats.total_pages 
+            } else { 
+                pdf_metadata.page_count 
+            },
             created: pdf_metadata.created,
             modified: pdf_metadata.modified,
         };
@@ -324,6 +348,103 @@ impl DocumentExtractor for PdfExtractor {
 
     fn supported_types(&self) -> &[DocumentType] {
         &[DocumentType::Pdf]
+    }
+
+}
+
+impl PdfExtractor {
+    /// Extract pages with advanced features (tables, layout information)
+    fn extract_advanced_pages(&self, provider: &PdfProvider, full_text: &str) -> Result<Vec<ExtractedPage>, DocumentError> {
+        debug!("Extracting pages with advanced features");
+
+        // Try to extract tables first
+        let pdf_tables = provider.extract_tables().unwrap_or_default();
+
+        // Split text into pages (simplified)
+        let page_texts = if full_text.contains('\x0C') {
+            full_text.split('\x0C').map(|s| s.to_string()).collect()
+        } else {
+            vec![full_text.to_string()]
+        };
+
+        let mut pages = Vec::new();
+        for (page_num, page_text) in page_texts.into_iter().enumerate() {
+            // Extract text elements for this page
+            let elements = self.extract_text_elements(&page_text);
+
+            // Convert PDF tables to extracted tables (simplified distribution)
+            let page_tables: Vec<super::ExtractedTable> = if page_num == 0 {
+                // Put all tables on first page for simplicity
+                pdf_tables
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, pdf_table)| super::ExtractedTable {
+                        index: idx,
+                        data: pdf_table.data.clone(),
+                        rows: pdf_table.rows,
+                        cols: pdf_table.cols,
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            pages.push(ExtractedPage {
+                number: page_num + 1,
+                text: page_text.clone(),
+                elements,
+                tables: page_tables,
+            });
+        }
+
+        Ok(pages)
+    }
+
+    /// Extract structured text elements from page text
+    fn extract_text_elements(&self, page_text: &str) -> Vec<ExtractedElement> {
+        let mut elements = Vec::new();
+        let lines: Vec<&str> = page_text.lines().collect();
+
+        for line in lines {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // Detect element type based on content
+            let (element_type, level, marker) = self.classify_text_line(trimmed);
+
+            elements.push(ExtractedElement {
+                element_type,
+                content: trimmed.to_string(),
+                level,
+                marker,
+            });
+        }
+
+        elements
+    }
+
+    /// Classify a text line into element type
+    fn classify_text_line(&self, line: &str) -> (String, Option<u8>, Option<String>) {
+        // Check for table markers
+        if line == "[TABLE]" || line == "[/TABLE]" {
+            return ("table_marker".to_string(), None, None);
+        }
+
+        // Check for headings (all caps, short lines)
+        if line.len() < 100 && line.chars().filter(|c| c.is_alphabetic()).all(|c| c.is_uppercase()) {
+            return ("heading".to_string(), Some(2), None);
+        }
+
+        // Check for list items
+        if line.starts_with("• ") || line.starts_with("- ") || line.starts_with("* ") {
+            let marker = line.chars().next().map(|c| c.to_string());
+            return ("list_item".to_string(), None, marker);
+        }
+
+        // Default to paragraph
+        ("paragraph".to_string(), None, None)
     }
 }
 

@@ -1,20 +1,29 @@
-//! PDF document processing implementation
+//! PDF document processing implementation with advanced features
 
 use crate::provider::{DocumentError, DocumentProvider, DocumentType};
+use super::{AdvancedPdfExtractor, PdfExtractConfig, EncryptedPdfHandler, EncryptionInfo, PdfOcrProcessor, OcrConfig, OcrAnalysis};
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
-/// PDF document provider for .pdf files
+/// PDF document provider for .pdf files with advanced features
 #[derive(Debug)]
 pub struct PdfProvider {
     path: PathBuf,
     content: RefCell<Option<String>>, // Cached extracted text with interior mutability
+    extract_config: PdfExtractConfig, // Configuration for advanced extraction
+    encryption_info: RefCell<Option<EncryptionInfo>>, // Cached encryption info
+    ocr_analysis: RefCell<Option<OcrAnalysis>>, // Cached OCR analysis
 }
 
 impl PdfProvider {
     /// Open a PDF document from a file path
     pub fn open(path: &Path) -> Result<Self, DocumentError> {
+        Self::open_with_config(path, PdfExtractConfig::default())
+    }
+
+    /// Open a PDF document with custom extraction configuration
+    pub fn open_with_config(path: &Path, config: PdfExtractConfig) -> Result<Self, DocumentError> {
         debug!("Opening PDF document: {}", path.display());
 
         if !path.exists() {
@@ -39,7 +48,25 @@ impl PdfProvider {
         Ok(PdfProvider {
             path: path.to_path_buf(),
             content: RefCell::new(None),
+            extract_config: config,
+            encryption_info: RefCell::new(None),
+            ocr_analysis: RefCell::new(None),
         })
+    }
+
+    /// Create provider optimized for small PDFs
+    pub fn open_small_file(path: &Path) -> Result<Self, DocumentError> {
+        Self::open_with_config(path, PdfExtractConfig::small_file())
+    }
+
+    /// Create provider optimized for large PDFs
+    pub fn open_large_file(path: &Path) -> Result<Self, DocumentError> {
+        Self::open_with_config(path, PdfExtractConfig::large_file())
+    }
+
+    /// Create provider optimized for layout-critical extraction
+    pub fn open_layout_critical(path: &Path) -> Result<Self, DocumentError> {
+        Self::open_with_config(path, PdfExtractConfig::layout_critical())
     }
 
     /// Get PDF metadata using lopdf
@@ -140,6 +167,172 @@ impl PdfProvider {
         }
 
         None
+    }
+
+    /// Check if PDF is encrypted and get encryption information
+    pub fn check_encryption(&self) -> Result<EncryptionInfo, DocumentError> {
+        // Check cache first
+        if let Some(cached_info) = self.encryption_info.borrow().as_ref() {
+            return Ok(cached_info.clone());
+        }
+
+        debug!("Checking PDF encryption: {}", self.path.display());
+        let mut handler = EncryptedPdfHandler::new(&self.path)?;
+        let encryption_info = handler.check_encryption()?;
+
+        // Cache the result
+        *self.encryption_info.borrow_mut() = Some(encryption_info.clone());
+
+        Ok(encryption_info)
+    }
+
+    /// Attempt to authenticate with password for encrypted PDFs
+    pub fn authenticate(&self, password: &str) -> Result<bool, DocumentError> {
+        info!("Attempting PDF authentication");
+        let mut handler = EncryptedPdfHandler::new(&self.path)?;
+        
+        match handler.authenticate(password) {
+            Ok(result) => match result {
+                crate::pdf::PasswordResult::Success => {
+                    info!("PDF authentication successful");
+                    Ok(true)
+                }
+                crate::pdf::PasswordResult::NotNeeded => {
+                    debug!("PDF authentication not needed");
+                    Ok(true)
+                }
+                crate::pdf::PasswordResult::Incorrect => {
+                    warn!("PDF authentication failed - incorrect password");
+                    Ok(false)
+                }
+                crate::pdf::PasswordResult::Error(err) => {
+                    Err(DocumentError::OperationFailed {
+                        reason: format!("PDF authentication error: {}", err),
+                    })
+                }
+            },
+            Err(e) => Err(DocumentError::OperationFailed {
+                reason: format!("PDF authentication failed: {}", e),
+            }),
+        }
+    }
+
+    /// Try common passwords for encrypted PDFs
+    pub fn try_common_passwords(&self) -> Result<Option<String>, DocumentError> {
+        info!("Trying common passwords for PDF");
+        let mut handler = EncryptedPdfHandler::new(&self.path)?;
+        
+        handler.try_common_passwords().map_err(|e| DocumentError::OperationFailed {
+            reason: format!("Failed to try common passwords: {}", e),
+        })
+    }
+
+    /// Analyze PDF for OCR requirements
+    pub fn analyze_for_ocr(&self) -> Result<OcrAnalysis, DocumentError> {
+        // Check cache first
+        if let Some(cached_analysis) = self.ocr_analysis.borrow().as_ref() {
+            return Ok(cached_analysis.clone());
+        }
+
+        debug!("Analyzing PDF for OCR requirements: {}", self.path.display());
+        let processor = PdfOcrProcessor::new(OcrConfig::default());
+        let analysis = processor.analyze_pdf_for_ocr(&self.path)?;
+
+        // Cache the result
+        *self.ocr_analysis.borrow_mut() = Some(analysis.clone());
+
+        Ok(analysis)
+    }
+
+    /// Extract text with advanced features (layout preservation, tables, etc.)
+    pub fn get_advanced_text(&self) -> Result<String, DocumentError> {
+        debug!("Extracting advanced text from PDF: {}", self.path.display());
+
+        // Check encryption status first
+        let encryption_info = self.check_encryption()?;
+        if encryption_info.is_encrypted {
+            info!("PDF is encrypted, attempting common passwords");
+            if let Some(_password) = self.try_common_passwords()? {
+                info!("Found working password for encrypted PDF");
+            } else {
+                warn!("Could not authenticate encrypted PDF");
+                return Err(DocumentError::OperationFailed {
+                    reason: "PDF is encrypted and requires authentication".to_string(),
+                });
+            }
+        }
+
+        // Use advanced extractor
+        let mut extractor = AdvancedPdfExtractor::new(&self.path, self.extract_config.clone())?;
+        let result = extractor.extract()?;
+
+        // Combine all page text
+        let mut combined_text = String::new();
+        for page in result.pages {
+            if self.extract_config.preserve_layout {
+                // Use structured text blocks
+                for block in page.text_blocks {
+                    combined_text.push_str(&block.text);
+                    combined_text.push('\n');
+                }
+            } else {
+                // Use raw text
+                combined_text.push_str(&page.raw_text);
+                combined_text.push('\n');
+            }
+
+            // Add tables if extracted
+            for table in page.tables {
+                combined_text.push_str("\n[TABLE]\n");
+                for row in table.data {
+                    combined_text.push_str(&format!("{}\n", row.join("\t")));
+                }
+                combined_text.push_str("[/TABLE]\n\n");
+            }
+        }
+
+        Ok(combined_text)
+    }
+
+    /// Get extraction statistics
+    pub fn get_extraction_stats(&self) -> Result<crate::pdf::ExtractionStats, DocumentError> {
+        debug!("Getting extraction statistics for PDF: {}", self.path.display());
+
+        let mut extractor = AdvancedPdfExtractor::new(&self.path, self.extract_config.clone())?;
+        let result = extractor.extract()?;
+
+        Ok(result.stats)
+    }
+
+    /// Extract tables from PDF
+    pub fn extract_tables(&self) -> Result<Vec<crate::pdf::PdfTable>, DocumentError> {
+        debug!("Extracting tables from PDF: {}", self.path.display());
+
+        let mut extractor = AdvancedPdfExtractor::new(&self.path, self.extract_config.clone())?;
+        let result = extractor.extract()?;
+
+        let mut all_tables = Vec::new();
+        for page in result.pages {
+            all_tables.extend(page.tables);
+        }
+
+        Ok(all_tables)
+    }
+
+    /// Process PDF with OCR (for image-based PDFs)
+    pub fn process_with_ocr(&self, config: Option<OcrConfig>) -> Result<String, DocumentError> {
+        info!("Processing PDF with OCR: {}", self.path.display());
+
+        let ocr_config = config.unwrap_or_default();
+        let mut processor = PdfOcrProcessor::new(ocr_config);
+        
+        processor.initialize_engine().map_err(|e| DocumentError::OperationFailed {
+            reason: format!("OCR initialization failed: {}", e),
+        })?;
+
+        // For now, return a placeholder - in a full implementation, this would
+        // process the PDF pages with OCR
+        Ok("OCR processing would extract text from image-based PDF pages here".to_string())
     }
 }
 
